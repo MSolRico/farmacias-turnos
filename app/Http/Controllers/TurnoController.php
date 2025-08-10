@@ -8,6 +8,7 @@ class TurnoController extends Controller
 {
     public function index()
     {
+        // Lista de ciudades para el formulario
         $ciudades = DB::table('ciudades')->get();
         return view('turnos.index', compact('ciudades'));
     }
@@ -19,7 +20,7 @@ class TurnoController extends Controller
             'ciudad' => 'required|integer',
         ]);
 
-        $fecha = $request->fecha; // yyyy-mm-dd
+        $fecha = $request->fecha;
         $ciudad_id = $request->ciudad;
 
         $farmacias = DB::table('farmacias_turnos')
@@ -28,11 +29,21 @@ class TurnoController extends Controller
             ->whereDate('turnos.fecha_hora_inicio', '<=', $fecha)
             ->whereDate('turnos.fecha_hora_fin', '>=', $fecha)
             ->where('turnos.id_ciudad', '=', $ciudad_id)
-            ->select('farmacias.*', 'farmacias_turnos.notas')
+            ->select(
+                'farmacias.id_farmacia',
+                'farmacias.nombre',
+                'farmacias.direccion',
+                'farmacias.telefono',
+                'farmacias_turnos.notas'
+            )
             ->distinct()
             ->get();
 
-        $ciudad = DB::table('ciudades')->find($ciudad_id);
+        // Forzamos que siempre exista $ciudad->nombre
+        $ciudad = DB::table('ciudades')
+        ->where('id_ciudad', $ciudad_id)
+        ->select('nombre_ciudad as nombre') // <-- cambiar por el nombre real
+        ->first();
 
         return view('turnos.resultado', compact('farmacias', 'fecha', 'ciudad'));
     }
