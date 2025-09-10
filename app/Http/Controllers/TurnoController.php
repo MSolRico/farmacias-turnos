@@ -11,8 +11,10 @@ class TurnoController extends Controller
 {
     public function index()
     {
+        Carbon::setLocale('es'); 
+
         $hoy = Carbon::today();
-        $mes = $hoy->translatedFormat('F');
+        $mes = ucfirst($hoy->translatedFormat('F')); 
         $anio = $hoy->year;
         
         $ciudad_santa_fe = Ciudad::where('nombre_ciudad', 'Santa Fe')->first();
@@ -75,6 +77,8 @@ class TurnoController extends Controller
 
         $ciudad = Ciudad::find($ciudad_id);
 
-        return view('turnos.resultado', compact('farmacias', 'ciudad', 'fecha'));
+        $ciudades = Ciudad::all();
+
+        return view('turnos.resultado', compact('farmacias', 'ciudad', 'fecha', 'ciudades'));
     }
 }
