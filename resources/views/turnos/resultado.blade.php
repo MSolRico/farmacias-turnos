@@ -1,17 +1,20 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container mt-4 d-flex flex-column h-100">
+<div class="container d-flex flex-column h-100">
     <div class="row g-4 d-flex flex-grow-1">
         <div class="col-12 col-lg-5 d-flex flex-column">
             <div class="container p-4 my-4 border bg-white rounded-4 d-flex flex-column flex-grow-1">
-                <h2 style="font-size:25px;">Farmacias de turno en {{ $ciudad->nombre }} para {{ $fecha }}</h2><br>
-                <div class="overflow-auto pe-3 flex-grow-1">
+                <h2 style="font-size:25px;">En {{ $ciudad->nombre_ciudad }} para {{ \Carbon\Carbon::parse($fecha)->translatedFormat('d F') }}</h2>
+                <div class="overflow-auto pe-3 flex-grow-1 mt-2">
+                    @php
+                    $isToday = (\Carbon\Carbon::parse($fecha)->isToday());
+                    @endphp
                     @if($farmacias->isEmpty())
                     <p>No se encontraron farmacias de turno para esta fecha.</p>
                     @else
                     @foreach($farmacias as $farmacia)
-                    @include('componentes.farmacia-card', ['farmacia' => $farmacia])
+                    @include('components.farmacia-card', ['farmacia' => $farmacia, 'isToday' => $isToday])
                     @endforeach
                     @endif
                 </div>
@@ -19,7 +22,7 @@
         </div>
         <div class="col-12 col-lg-7 d-flex flex-column">
             <div class="container p-4 my-4 border bg-white rounded-4 flex-grow-1">
-                @include('componentes.mapa')
+                @include('components.mapa')
             </div>
         </div>
     </div>

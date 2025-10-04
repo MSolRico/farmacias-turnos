@@ -19,10 +19,10 @@ class TurnoController extends Controller
         
         $ciudad_santa_fe = Ciudad::where('nombre_ciudad', 'Santa Fe')->first();
 
-        $farmacias_turno_hoy = collect();
+        $farmacias = collect();
 
         if ($ciudad_santa_fe) {
-            $farmacias_turno_hoy = DB::table('farmacias_turnos')
+            $farmacias = DB::table('farmacias_turnos')
                 ->join('turnos', 'farmacias_turnos.id_turno', '=', 'turnos.id_turno')
                 ->join('farmacias', 'farmacias_turnos.id_farmacia', '=', 'farmacias.id_farmacia')
                 ->whereDate('turnos.fecha_hora_inicio', '<=', $hoy)
@@ -43,8 +43,7 @@ class TurnoController extends Controller
 
         $ciudades = Ciudad::all();
 
-        // Pasa los nuevos datos a la vista
-        return view('turnos.index', compact('ciudades', 'farmacias_turno_hoy', 'ciudad_santa_fe', 'mes', 'anio'));
+        return view('turnos.index', compact('ciudades', 'farmacias', 'ciudad_santa_fe', 'mes', 'anio'));
     }
 
     public function buscar(Request $request)
