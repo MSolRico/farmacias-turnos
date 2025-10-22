@@ -1,4 +1,4 @@
-<div class="card mb-3">
+<div class="card mb-3" x-data>
     <div class="card-body">
         <h5 class="card-title mb-1">
             <b>{{ $farmacia->nombre }}</b>

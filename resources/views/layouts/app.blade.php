@@ -7,7 +7,7 @@
     <link rel="icon" href="{{ asset('capsule.svg') }}" type="image/svg+xml">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    @vite(['resources/css/app.css'])
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
 <body class="d-flex flex-column h-100" style="background-color: rgb(242, 245, 248);">
@@ -57,7 +57,15 @@
                                 </g>
                             </svg>
                         </button>
-                        <ul x-show="open" @click.away="open = false"
+                        <ul x-show="open"
+                            x-cloak
+                            @click.away="open = false"
+                            x-transition:enter="transition ease-out duration-100"
+                            x-transition:enter-start="opacity-0 scale-95"
+                            x-transition:enter-end="opacity-100 scale-100"
+                            x-transition:leave="transition ease-in duration-75"
+                            x-transition:leave-start="opacity-100 scale-100"
+                            x-transition:leave-end="opacity-0 scale-95"
                             class="tw-dropdown">
                             @auth
                             <li><a href="{{ route('profile.edit') }}" class="tw-dropdown-link">Perfil</a></li>
@@ -108,24 +116,28 @@
         </script>
     </main>
 
-    <x-modal name="login" focusable>
-        <div class="p-6">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg font-medium text-gray-900">
-                    {{ __('Iniciar sesión') }}
-                </h2>
-                <button type="button" @click="$dispatch('close-modal', 'login')" class="text-gray-400 hover:text-gray-500">
-                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
+    <x-modal name="login" focusable maxWidth="md">
+        <div class="modal-header">
+            <h5 class="modal-title">Iniciar sesión requerida</h5>
+            <button
+                type="button"
+                class="btn-close"
+                @click="$dispatch('close-modal', 'login')"
+                aria-label="Close">
+            </button>
+        </div>
+        <div class="modal-body text-center">
+            <p class="mb-4">
+                Para poder <strong>reportar una farmacia como cerrada</strong>, primero debés iniciar sesión con tu cuenta.
+            </p>
 
-            @include('auth.login-form')
+            <a href="{{ route('login') }}"
+                class="btn btn-primary px-4">
+                Ir al inicio de sesión
+            </a>
         </div>
     </x-modal>
 
-    @vite(['resources/js/app.js'])
 </body>
 
 </html>

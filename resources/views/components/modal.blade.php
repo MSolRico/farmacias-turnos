@@ -1,16 +1,11 @@
-@props([
-    'name',
-    'show' => false,
-    'maxWidth' => '2xl'
-])
+@props(['name', 'show' => false, 'maxWidth' => 'md'])
 
 @php
 $maxWidth = [
-    'sm' => 'sm:max-w-sm',
-    'md' => 'sm:max-w-md',
-    'lg' => 'sm:max-w-lg',
-    'xl' => 'sm:max-w-xl',
-    '2xl' => 'sm:max-w-2xl',
+'sm' => 'modal-sm',
+'md' => '',
+'lg' => 'modal-lg',
+'xl' => 'modal-xl',
 ][$maxWidth];
 @endphp
 
@@ -18,10 +13,8 @@ $maxWidth = [
     x-data="{
         show: @js($show),
         focusables() {
-            // All focusable element types...
             let selector = 'a, button, input:not([type=\'hidden\']), textarea, select, details, [tabindex]:not([tabindex=\'-1\'])'
             return [...$el.querySelectorAll(selector)]
-                // All non-disabled elements...
                 .filter(el => ! el.hasAttribute('disabled'))
         },
         firstFocusable() { return this.focusables()[0] },
@@ -33,10 +26,10 @@ $maxWidth = [
     }"
     x-init="$watch('show', value => {
         if (value) {
-            document.body.classList.add('overflow-y-hidden');
+            document.body.classList.add('modal-open');
             {{ $attributes->has('focusable') ? 'setTimeout(() => firstFocusable().focus(), 100)' : '' }}
         } else {
-            document.body.classList.remove('overflow-y-hidden');
+            document.body.classList.remove('modal-open');
         }
     })"
     x-on:open-modal.window="$event.detail == '{{ $name }}' ? show = true : null"
@@ -46,33 +39,75 @@ $maxWidth = [
     x-on:keydown.tab.prevent="$event.shiftKey || nextFocusable().focus()"
     x-on:keydown.shift.tab.prevent="prevFocusable().focus()"
     x-show="show"
-    class="fixed inset-0 overflow-y-auto px-4 py-6 sm:px-0 z-50"
-    style="display: {{ $show ? 'block' : 'none' }};"
->
+    x-cloak
+    class="modal fade"
+    :class="{ 'show d-block': show }"
+    tabindex="-1"
+    style="display: none;"
+    role="dialog"
+    aria-modal="true">
+    {{-- Backdrop --}}
     <div
         x-show="show"
-        class="fixed inset-0 transform transition-all"
+        class="modal-backdrop fade"
+        :class="{ 'show': show }"
         x-on:click="show = false"
-        x-transition:enter="ease-out duration-300"
+        x-transition:enter="transition-opacity duration-300"
         x-transition:enter-start="opacity-0"
         x-transition:enter-end="opacity-100"
-        x-transition:leave="ease-in duration-200"
+        x-transition:leave="transition-opacity duration-200"
         x-transition:leave-start="opacity-100"
-        x-transition:leave-end="opacity-0"
-    >
-        <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
-    </div>
+        x-transition:leave-end="opacity-0"></div>
 
+    {{-- Modal Dialog --}}
     <div
+        class="modal-dialog {{ $maxWidth }} modal-dialog-centered modal-dialog-scrollable"
         x-show="show"
-        class="mb-6 bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:w-full {{ $maxWidth }} sm:mx-auto"
-        x-transition:enter="ease-out duration-300"
-        x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-        x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-        x-transition:leave="ease-in duration-200"
-        x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-        x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-    >
-        {{ $slot }}
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0 transform translate-y-4 sm:translate-y-0 sm:scale-95"
+        x-transition:enter-end="opacity-100 transform translate-y-0 sm:scale-100"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="opacity-100 transform translate-y-0 sm:scale-100"
+        x-transition:leave-end="opacity-0 transform translate-y-4 sm:translate-y-0 sm:scale-95"
+        style="z-index: 1050;">
+        <div class="modal-content">
+            {{ $slot }}
+        </div>
     </div>
 </div>
+
+<style>
+    [x-cloak] {
+        display: none !important;
+    }
+
+    .modal.show {
+        padding-right: 0 !important;
+    }
+
+    .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1040;
+        width: 100vw;
+        height: 100vh;
+        background-color: #000;
+        opacity: 0;
+    }
+
+    .modal-backdrop.show {
+        opacity: 0.5;
+    }
+
+    .modal-header {
+        border-bottom: none;
+        justify-content: center;
+    }
+
+    .modal-title {
+        text-align: center;
+        width: 100%;
+        font-weight: 600;
+    }
+</style>

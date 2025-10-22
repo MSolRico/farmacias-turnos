@@ -17,9 +17,9 @@
             <x-input-label for="password" :value="__('Contraseña')" />
 
             <x-text-input id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="current-password" />
+                type="password"
+                name="password"
+                required autocomplete="current-password" />
 
             <x-input-error :messages="$errors->get('password')" class="mt-2" />
         </div>
@@ -34,9 +34,9 @@
 
         <div class="flex items-center justify-end mt-4">
             @if (Route::has('password.request'))
-                <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('password.request') }}">
-                    {{ __('Olvido su contraseña?') }}
-                </a>
+            <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('password.request') }}">
+                {{ __('Olvido su contraseña?') }}
+            </a>
             @endif
 
             <x-primary-button class="ms-3">
@@ -44,4 +44,23 @@
             </x-primary-button>
         </div>
     </form>
+
+    <!-- Divider -->
+    <div class="flex items-center my-6">
+        <hr class="flex-grow border-gray-300">
+        <span class="mx-3 text-gray-400 text-sm">o</span>
+        <hr class="flex-grow border-gray-300">
+    </div>
+
+    <!-- Register -->
+    @if (Route::has('register'))
+    <div class="flex items-center justify-center gap-2 mt-6 text-sm text-gray-700">
+        <span>¿No tenés una cuenta?</span>
+        <a href="{{ route('register') }}" 
+           class="px-3 py-1 border border-blue-500 text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition">
+            {{ __('Registrate aquí') }}
+        </a>
+    </div>
+    @endif
+
 </x-guest-layout>
