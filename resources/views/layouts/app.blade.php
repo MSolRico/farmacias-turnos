@@ -88,6 +88,34 @@
                 </div>
             </div>
         </nav>
+
+        @if(session('success'))
+        <div class="container mt-3">
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        </div>
+        @endif
+
+        @if(session('warning'))
+        <div class="container mt-3">
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                {{ session('warning') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        </div>
+        @endif
+
+        @if(session('error'))
+        <div class="container mt-3">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        </div>
+        @endif
+
         @yield('content')
 
         <hr class="my-4">
@@ -135,6 +163,86 @@
                 class="btn btn-primary px-4">
                 Ir al inicio de sesión
             </a>
+        </div>
+    </x-modal>
+
+    <x-modal name="confirmReport" focusable maxWidth="md">
+        <div
+            x-data="{ 
+            farmaciaId: null, 
+            farmaciaNombre: 'Farmacia',
+            init() {
+                this.$watch('$store.selectedFarmacia', (value) => {
+                    if (value) {
+                        this.farmaciaId = value.id;
+                        this.farmaciaNombre = value.nombre;
+                    }
+                });
+                // Escuchar evento personalizado
+                window.addEventListener('farmacia-selected', (e) => {
+                    this.farmaciaId = e.detail.id;
+                    this.farmaciaNombre = e.detail.nombre;
+                });
+            }
+        }">
+
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    Confirmar Reporte de Cierre
+                </h5>
+                <button
+                    type="button"
+                    class="btn-close"
+                    @click="$dispatch('close-modal', 'confirmReport')"
+                    aria-label="Close">
+                </button>
+            </div>
+
+            <form method="POST" action="{{ route('reportes.store') }}">
+                @csrf
+                <div class="modal-body">
+                    <div class="text-center mb-4">
+                        <p class="mb-3">
+                            ¿Está seguro que desea reportar la siguiente farmacia como <strong>CERRADA</strong>?
+                        </p>
+
+                        <div class="alert alert-light">
+                            <h6 class="mb-0" x-text="farmaciaNombre"></h6>
+                        </div>
+                    </div>
+
+                    {{-- Input oculto con ID de farmacia --}}
+                    <input type="hidden" name="farmacia_id" x-bind:value="farmaciaId">
+
+                    {{-- Campo opcional de comentario --}}
+                    <div class="mb-3">
+                        <label for="comentario" class="form-label">Comentario (opcional)</label>
+                        <textarea
+                            class="form-control"
+                            id="comentario"
+                            name="comentario"
+                            rows="3"
+                            placeholder="Ej: Estoy en el lugar y está cerrada, no hay personal..."></textarea>
+                        <small class="text-muted">Este comentario ayudará a otros usuarios</small>
+                    </div>
+
+                    <div class="alert alert-warning mb-0">
+                        <small>
+                            <strong>Nota:</strong> Los reportes falsos pueden resultar en la suspensión de tu cuenta.
+                        </small>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-exclamation-circle me-1" viewBox="0 0 16 16">
+                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
+                            <path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0M7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0z" />
+                        </svg>
+                        Sí, Reportar Cierre
+                    </button>
+                </div>
+            </form>
         </div>
     </x-modal>
 

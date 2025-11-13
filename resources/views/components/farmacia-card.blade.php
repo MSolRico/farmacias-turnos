@@ -1,4 +1,4 @@
-<div class="card mb-3" x-data>
+<div class="card mb-3" x-data="{ farmaciaId: {{ $farmacia->id_farmacia }}, farmaciaNombre: '{{ $farmacia->nombre }}' }">
     <div class="card-body">
         <h5 class="card-title mb-1">
             <b>{{ $farmacia->nombre }}</b>
@@ -17,10 +17,38 @@
                 </svg>
                 <span>Teléfono: {{ $farmacia->telefono }}</span>
             </li>
+            
+            @if(isset($farmacia->notas) && $farmacia->notas)
+                <li class="list-group-item border-0 py-1">
+                    <div class="alert alert-info mb-0 py-2">
+                        <small><strong>Nota:</strong> {{ $farmacia->notas }}</small>
+                    </div>
+                </li>
+            @endif
+
+            @if(isset($farmacia->reportada_cerrada) && $farmacia->reportada_cerrada)
+                <li class="list-group-item border-0 py-1">
+                    <div class="alert alert-warning mb-0 py-2 d-flex align-items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-exclamation-triangle me-2" viewBox="0 0 16 16">
+                            <path d="M7.938 2.016A.13.13 0 0 1 8.002 2a.13.13 0 0 1 .063.016.15.15 0 0 1 .054.057l6.857 11.667c.036.06.035.124.002.183a.2.2 0 0 1-.054.06.1.1 0 0 1-.066.017H1.146a.1.1 0 0 1-.066-.017.2.2 0 0 1-.054-.06.18.18 0 0 1 .002-.183L7.884 2.073a.15.15 0 0 1 .054-.057m1.044-.45a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767z"/>
+                            <path d="M7.002 12a1 1 0 1 1 2 0 1 1 0 0 1-2 0M7.1 5.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0z"/>
+                        </svg>
+                        <small><strong>Reportada como cerrada por la Comunidad</strong> ({{ $farmacia->total_reportes ?? 1 }} reporte{{ ($farmacia->total_reportes ?? 1) > 1 ? 's' : '' }})</small>
+                    </div>
+                </li>
+            @endif
+
             @if (isset($isToday) && $isToday)
                 <li class="list-group-item border-0 py-1">
                     @auth
-                        <button class="btn btn-outline-warning w-100" style="background-color:#ffffcc;">Reportar como Cerrado</button>
+                        <button 
+                            type="button" class="tw-report-btn"
+                            @click="window.selectedFarmacia = { id: farmaciaId, nombre: farmaciaNombre }; $dispatch('open-modal', 'confirmReport')">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                <path d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2Zm1 14h-2v-2h2Zm0-4h-2V7h2Z"/>
+                            </svg>
+                            Reportar como Cerrado
+                        </button>
                     @else
                         <button type="button" class="tw-report-btn" @click="$dispatch('open-modal', 'login')">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
