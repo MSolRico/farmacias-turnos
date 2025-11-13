@@ -47,3 +47,4 @@
     map.setView(markers[0], 13);
     }
 @endsection
+

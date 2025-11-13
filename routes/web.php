@@ -3,6 +3,10 @@
 use App\Http\Controllers\TurnoController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ReporteController;
+
+Route::post('/reportar', [ReporteController::class, 'store'])->name('reportar.cerrada');
+
 
 Route::get('/', [TurnoController::class, 'index'])->name('dashboard');
 

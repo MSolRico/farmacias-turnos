@@ -37,8 +37,8 @@ class TurnoFarmaciaSeeder extends Seeder
             'st_2' => ['name' => 'Farmacia Stessens', 'dutyDates' => ["2025-10-06", "2025-10-15", "2025-10-24"]],
             'st_3' => ['name' => 'Farmacia Daniel Lagger', 'dutyDates' => ["2025-10-07", "2025-10-16", "2025-10-25"]],
             'st_4' => ['name' => 'Farmacia Villata', 'dutyDates' => ["2025-10-07", "2025-10-16", "2025-10-25"]],
-            'st_5' => ['name' => 'Farmacia Ghersi', 'dutyDates' => ["2025-10-08", "2025-10-17", "2025-10-26"]],
-            'st_6' => ['name' => 'Farmacia Capra', 'dutyDates' => ["2025-10-08", "2025-10-17", "2025-10-26"]],
+            'st_5' => ['name' => 'Farmacia Ghersi', 'dutyDates' => ["2025-11-13", "2025-11-17", "2025-11-26"]],
+            'st_6' => ['name' => 'Farmacia Capra', 'dutyDates' => ["2025-11-13", "2025-11-17", "2025-11-26"]],
         ];
 
         foreach ($pharmaciesData as $id => $data) {
