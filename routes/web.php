@@ -5,6 +5,9 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReporteController;
 use Illuminate\Support\Facades\Route;
 
+Route::post('/reportar', [ReporteController::class, 'store'])->name('reportar.cerrada');
+
+
 Route::get('/', [TurnoController::class, 'index'])->name('dashboard');
 
 Route::get('/buscar', [TurnoController::class, 'buscar'])->name('buscar');

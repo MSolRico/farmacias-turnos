@@ -1,3 +1,7 @@
+@php
+    use App\Models\Reporte;
+@endphp
+
 @extends('layouts.app')
 
 @section('content')
@@ -50,3 +54,4 @@ map.fitBounds(markers);
 map.setView(markers[0], 13);
 }
 @endsection
+
