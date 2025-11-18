@@ -51,7 +51,7 @@
             {{-- Aviso de reportes acumulados --}}
             @if($cantidadReportes > 0)
             <li class="list-group-item border-0 py-1">
-                <div class="alert alert-warning mb-0 py-2">
+                <div class="alert alert-danger mb-0 py-2">
                     <strong>Reportada como cerrada</strong>
                     ({{ $cantidadReportes }} reporte{{ $cantidadReportes > 1 ? 's' : '' }})
                 </div>
@@ -63,34 +63,34 @@
             <li class="list-group-item border-0 py-1">
 
                 @auth
-
+                
                 @if($yaReportoHoy)
-                <button class="btn btn-danger w-100" disabled>
+                <button class="btn btn-danger rounded-pill w-100" style="padding: .6rem 1rem !important;" disabled>
                     Ya reportaste hoy
                 </button>
 
                 @else
-                <form action="{{ route('reportar.cerrada') }}" method="POST" class="w-100">
-                    @csrf
-                    <input type="hidden" name="id_farmacia" value="{{ $farmacia->id_farmacia }}">
-
-                    <button type="submit"
-                        class="btn {{ $cantidadReportes > 0 ? 'btn-danger' : 'tw-report-btn' }} w-100">
-                        @if($cantidadReportes > 0)
-                        Reportada cerrada ({{ $cantidadReportes }})
-                        @else
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                            <path d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2Zm1 14h-2v-2h2Zm0-4h-2V7h2Z" />
-                        </svg>
-                        Reportar como Cerrado
-                        @endif
-                    </button>
-                </form>
+                <button type="button"
+                    @click="$dispatch('open-modal', 'confirm-report-{{ $farmacia->id_farmacia }}')"
+                    class="btn {{ $cantidadReportes > 0 ? 'btn-danger rounded-pill' : 'tw-report-btn' }} w-100"
+                    style="padding: .6rem 1rem !important;">
+                    @if($cantidadReportes > 0)
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2Zm1 14h-2v-2h2Zm0-4h-2V7h2Z" />
+                    </svg>
+                    Reportar como Cerrado
+                    @else
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2Zm1 14h-2v-2h2Zm0-4h-2V7h2Z" />
+                    </svg>
+                    Reportar como Cerrado
+                    @endif
+                </button>
                 @endif
 
                 @else
                 <button type="button" class="tw-report-btn" @click="$dispatch('open-modal', 'login')">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                         <path d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2Zm1 14h-2v-2h2Zm0-4h-2V7h2Z" />
                     </svg>
                     Reportar como Cerrado
