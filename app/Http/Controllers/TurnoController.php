@@ -1,16 +1,49 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Models\Ciudad;
+use Carbon\Carbon;
 
 class TurnoController extends Controller
 {
     public function index()
     {
-        // Lista de ciudades para el formulario
-        $ciudades = DB::table('ciudades')->get();
-        return view('turnos.index', compact('ciudades'));
+        Carbon::setLocale('es'); 
+
+        $hoy = Carbon::today();
+        $mes = ucfirst($hoy->translatedFormat('F')); 
+        $anio = $hoy->year;
+        
+        $ciudad_santa_fe = Ciudad::where('nombre_ciudad', 'Santa Fe')->first();
+
+        $farmacias = collect();
+
+        if ($ciudad_santa_fe) {
+            $farmacias = DB::table('farmacias_turnos')
+                ->join('turnos', 'farmacias_turnos.id_turno', '=', 'turnos.id_turno')
+                ->join('farmacias', 'farmacias_turnos.id_farmacia', '=', 'farmacias.id_farmacia')
+                ->whereDate('turnos.fecha_hora_inicio', '<=', $hoy)
+                ->whereDate('turnos.fecha_hora_fin', '>=', $hoy)
+                ->where('turnos.id_ciudad', '=', $ciudad_santa_fe->id_ciudad)
+                ->select(
+                    'farmacias.id_farmacia',
+                    'farmacias.nombre',
+                    'farmacias.direccion',
+                    'farmacias.telefono',
+                    'farmacias.lat',
+                    'farmacias.lng',
+                    'farmacias_turnos.notas'
+                )
+                ->distinct()
+                ->get();
+        }
+
+        $ciudades = Ciudad::all();
+
+        return view('turnos.index', compact('ciudades', 'farmacias', 'ciudad_santa_fe', 'mes', 'anio'));
     }
 
     public function buscar(Request $request)
@@ -34,17 +67,17 @@ class TurnoController extends Controller
                 'farmacias.nombre',
                 'farmacias.direccion',
                 'farmacias.telefono',
+                'farmacias.lat',
+                'farmacias.lng',
                 'farmacias_turnos.notas'
             )
             ->distinct()
             ->get();
 
-        // Forzamos que siempre exista $ciudad->nombre
-        $ciudad = DB::table('ciudades')
-        ->where('id_ciudad', $ciudad_id)
-        ->select('nombre_ciudad as nombre') // <-- cambiar por el nombre real
-        ->first();
+        $ciudad = Ciudad::find($ciudad_id);
 
-        return view('turnos.resultado', compact('farmacias', 'fecha', 'ciudad'));
+        $ciudades = Ciudad::all();
+
+        return view('turnos.resultado', compact('farmacias', 'ciudad', 'fecha', 'ciudades'));
     }
 }
