@@ -10,13 +10,17 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
-<body class="d-flex flex-column h-100" style="background-color: rgb(242, 245, 248);">
+<body class="d-flex flex-column h-100">
     <main class="flex-shrink-0">
         <nav class="tw-nav">
             <div class="tw-nav-inner tw-whitespace-nowrap">
                 <a href="{{ route('dashboard') }}" class="tw-brand">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#66b5f5" class="bi bi-capsule me-2" viewBox="0 0 16 16">
-                        <path d="M1.828 8.9 8.9 1.827a4 4 0 1 1 5.657 5.657l-7.07 7.071A4 4 0 1 1 1.827 8.9Zm9.128.771 2.893-2.893a3 3 0 1 0-4.243-4.242L6.713 5.429z" />
+                    <svg height="45" width="45" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#6cde58">
+                        <g>
+                            <path d="M21 8V16C21 18.7614 18.7614 21 16 21H8C5.23858 21 3 18.7614 3 16V8C3 5.23858 5.23858 3 8 3H16C18.7614 3 21 5.23858 21 8Z" stroke="#6cde58" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+
+                            <path d="M13.9 18H10.1C9.76863 18 9.5 17.7314 9.5 17.4V15.1C9.5 14.7686 9.23137 14.5 8.9 14.5H6.6C6.26863 14.5 6 14.2314 6 13.9V10.1C6 9.76863 6.26863 9.5 6.6 9.5H8.9C9.23137 9.5 9.5 9.23137 9.5 8.9V6.6C9.5 6.26863 9.76863 6 10.1 6H13.9C14.2314 6 14.5 6.26863 14.5 6.6V8.9C14.5 9.23137 14.7686 9.5 15.1 9.5H17.4C17.7314 9.5 18 9.76863 18 10.1V13.9C18 14.2314 17.7314 14.5 17.4 14.5H15.1C14.7686 14.5 14.5 14.7686 14.5 15.1V17.4C14.5 17.7314 14.2314 18 13.9 18Z" stroke="#6cde58" stroke-width="1.5"></path>
+                        </g>
                     </svg>
                     <h1 class="tw-brand-title">Farmacias de Turno</h1>
                 </a>
@@ -160,7 +164,7 @@
             </p>
 
             <a href="{{ route('login') }}"
-                class="btn btn-primary px-4">
+                class="btn btn-success px-4">
                 Ir al inicio de sesión
             </a>
         </div>
@@ -234,7 +238,7 @@
                 </div>
 
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-success">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-exclamation-circle me-1" viewBox="0 0 16 16">
                             <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
                             <path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0M7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0z" />

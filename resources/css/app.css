@@ -2,12 +2,13 @@
 
 :root {
   /* COLORES PRIMARIOS */
-  --color-primary-light: #66b5f5;
-  --color-primary-dark: #3b82f6;
-  --color-focus: #8ab5f7;
+  --color-primary-light: #89e579;
+  --color-primary-dark: #6cde58;
+  --color-focus: #7be169;
 
   /* COLORES DE FONDO Y BORDES */
-  --color-bg-light: #f2f5f8;
+  --color-bg-gral: #edfeea;
+  --color-bg-light: #effaed;
   --color-bg-hover: #f3f4f6;
   --color-bg-input-auth: #f9fafb;
 
@@ -25,6 +26,7 @@
 /* Global font */
 body {
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji";
+  background: var(--color-bg-gral);
 }
 
 /* Plain CSS equivalents to avoid @apply build issues */
@@ -153,9 +155,9 @@ body {
   padding: .6rem 1rem;
   border-radius: 9999px;
   color: #fff;
-  background-image: linear-gradient(90deg, #93c5fd 0%, #3e73e7 100%);
-  border: 1px solid rgba(37,99,235,.4);
-  box-shadow: 0 6px 16px rgba(37,99,235,.25);
+  background-image: linear-gradient(90deg, #aceda1 0%, #60a055 100%);
+  border: 1px solid rgba(83, 139, 74,.4);
+  box-shadow: 0 6px 16px rgba(83, 139, 74,.25);
   transition: transform .1s ease, box-shadow .2s ease, filter .2s ease;
 }
 .tw-report-btn:active { transform: translateY(1px); }
@@ -206,3 +208,8 @@ body {
   z-index: 99999 !important;
 }
 
+.svg-16 {
+    width: 16px !important;
+    height: 16px !important;
+    flex-shrink: 0 !important;
+}
