@@ -1,4 +1,4 @@
-# 💊 Farmacias de Turno (ricardo-lechman/farmacias-turnos)
+# 💊 Farmacias de Turno
 
 Aplicación web/móvil enfocada en la localización eficiente y precisa de farmacias de guardia.
 Este repositorio aloja el código backend y la lógica de negocio, incluyendo el proceso de ingesta y geolocalización de datos.
@@ -60,6 +60,3 @@ Este proyecto utiliza un stack de desarrollo moderno y herramientas de código a
 
 Agradecemos cualquier contribución que mejore la precisión del OCR, la velocidad de geocodificación con OpenStreetMap, o la estabilidad general del framework Laravel 11.
 
-## 📄 Licencia
-
-[Indicar Licencia, ej: MIT, Apache 2.0]
