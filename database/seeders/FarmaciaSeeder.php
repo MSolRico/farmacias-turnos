@@ -166,7 +166,7 @@ class FarmaciaSeeder extends Seeder
             // --- SANTA FE: UNDECIMO TURNO ---
             ['nombre' => 'Argenti', 'direccion' => 'San Jerónimo 1746', 'telefono' => '459 2943', 'lat' => null, 'lng' => null, 'id_ciudad' => $santaFeId],
             ['nombre' => 'Berron', 'direccion' => 'Diagonal Goyena 3221', 'telefono' => '489 4530', 'lat' => null, 'lng' => null, 'id_ciudad' => $santaFeId],
-            ['nombre' => 'Castro Karina', 'direccion' => 'Dra. Grienson 8231', 'telefono' => '155 691900', 'lat' => null, 'lng' => null, 'id_ciudad' => $santaFeId],
+            ['nombre' => 'Castro Karina', 'direccion' => 'Dra. Grierson 8231', 'telefono' => '155 691900', 'lat' => null, 'lng' => null, 'id_ciudad' => $santaFeId],
             ['nombre' => 'Facino', 'direccion' => 'Diagonal España 3176', 'telefono' => '580 5041', 'lat' => null, 'lng' => null, 'id_ciudad' => $santaFeId],
             ['nombre' => 'Labath', 'direccion' => 'Stgo. del Estero 3142 - Loc. 5', 'telefono' => '455 5146', 'lat' => null, 'lng' => null, 'id_ciudad' => $santaFeId],
             ['nombre' => 'Martínez', 'direccion' => 'Av. Galicia 1519', 'telefono' => '460 6375', 'lat' => null, 'lng' => null, 'id_ciudad' => $santaFeId],

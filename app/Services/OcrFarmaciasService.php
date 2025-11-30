@@ -4,6 +4,7 @@ namespace App\Services;
 
 use thiagoalessio\TesseractOCR\TesseractOCR;
 use Illuminate\Support\Facades\DB;
+use App\Services\GeocodeService;
 use App\Models\Farmacia;
 use App\Models\Turno;
 use App\Models\Ciudad;
@@ -15,6 +16,13 @@ class OcrFarmaciasService
 {
     // Año por defecto (ajustá si necesitás otro)
     protected int $defaultYear = 2025;
+
+    protected GeocodeService $geo;
+
+    public function __construct(GeocodeService $geo)
+    {
+        $this->geo = $geo;
+    }
 
     public function procesar(string $ruta)
     {
@@ -72,10 +80,10 @@ class OcrFarmaciasService
                 $d2 = OcrCleaner::fixDateString($m[1][1], $this->defaultYear);
                 if ($d1 && $d2) {
                     // convertir a Carbon (inicio 8:00 del primer día, fin 8:00 del segundo día)
-                    [$d1d,$d1m,$d1y] = $d1;
-                    [$d2d,$d2m,$d2y] = $d2;
-                    $inicio = Carbon::createFromDate($d1y, $d1m, $d1d)->setTime(8,0,0);
-                    $fin = Carbon::createFromDate($d2y, $d2m, $d2d)->setTime(8,0,0);
+                    [$d1d, $d1m, $d1y] = $d1;
+                    [$d2d, $d2m, $d2y] = $d2;
+                    $inicio = Carbon::createFromDate($d1y, $d1m, $d1d)->setTime(8, 0, 0);
+                    $fin = Carbon::createFromDate($d2y, $d2m, $d2d)->setTime(8, 0, 0);
                     $currentTurnDates = [$inicio, $fin];
                     continue;
                 }
@@ -85,39 +93,36 @@ class OcrFarmaciasService
             // La expresión captura números en formato variados.
             if (preg_match('/\d{2,4}[^\d]{0,2}\d{3,5}/', $line)) {
 
-                // extraer teléfono
                 $telefono = OcrCleaner::fixPhone($line);
-
-                // extraer dirección (heurísticas)
                 $direccion = $this->extractAddress($line);
-
-                // extraer nombre: parte antes de la dirección o antes del teléfono
                 $nombre = $this->extractName($line, $direccion, $telefono);
 
-                // limpiar/normalizar
                 $nombre = OcrCleaner::normalizeName($nombre);
                 $direccion = OcrCleaner::normalizeAddress($direccion);
-                $telefono = $telefono ? preg_replace('/\D+/', '', $telefono) : null;
+                $direccion = OcrCleaner::fixStreetNames($direccion);
+                [$direccion, $notas] = OcrCleaner::splitAddressNotes($direccion);
 
-                // Reglas: si no hay ciudad, asignar Santa Fe por default
+                $telefono = $telefono ? preg_replace('/\D+/', '', $telefono) : null;
                 $ciudad = $currentCity ?? 'Santa Fe';
 
-                // Guardar item con copia de las fechas corrientes (si existen)
                 $items[] = [
-                    'id_tmp' => Str::random(8),
-                    'nombre' => $nombre,
+                    'id_tmp'    => Str::random(8),
+                    'nombre'    => $nombre,
                     'direccion' => $direccion,
-                    'telefono' => $telefono,
-                    'ciudad' => $ciudad,
-                    'turn_dates' => $currentTurnDates // puede ser null
+                    'telefono'  => $telefono,
+                    'ciudad'    => $ciudad,
+                    'notas'     => $notas,
+                    'turn_dates' => $currentTurnDates
                 ];
+
                 continue;
             }
+
 
             // Otras líneas: posible continuación de la dirección (ej. línea previa tenía nombre + teléfono)
             // Intento unir con último item si parece una dirección
             if (!empty($items)) {
-                $last = &$items[count($items)-1];
+                $last = &$items[count($items) - 1];
                 if ($last['direccion'] === null && $this->looksLikeAddress($line)) {
                     // concatenar
                     $last['direccion'] = trim(($last['direccion'] ?? '') . ' ' . $line);
@@ -177,7 +182,7 @@ class OcrFarmaciasService
 
                 // Geocoding solo si hace falta (respeta rate-limit)
                 if ((empty($farmacia->lat) || empty($farmacia->lng)) && !empty($farmacia->direccion)) {
-                    [$lat,$lng] = $this->obtenerCoordenadas($farmacia->direccion . ' ' . $ciudad->nombre_ciudad);
+                    [$lat, $lng] = $this->obtenerCoordenadas($farmacia->direccion, $ciudad->nombre_ciudad);
                     if ($lat && $lng) {
                         $farmacia->lat = $lat;
                         $farmacia->lng = $lng;
@@ -200,16 +205,26 @@ class OcrFarmaciasService
 
                 $stats['turnos']++;
 
-                // Insertar pivot si no existe
-                $exists = DB::table('farmacias_turnos')
+                $pivot = DB::table('farmacias_turnos')
                     ->where('id_farmacia', $farmacia->id_farmacia)
                     ->where('id_turno', $turno->id_turno)
-                    ->exists();
-                if (!$exists) {
+                    ->first();
+
+                if (!$pivot) {
+                    // No existe: insertar todo
                     DB::table('farmacias_turnos')->insert([
-                        'id_farmacia' => $farmacia->id_farmacia,
-                        'id_turno' => $turno->id_turno
+                        'id_farmacia'  => $farmacia->id_farmacia,
+                        'id_turno'     => $turno->id_turno,
+                        'notas'        => $it['notas'] ?? null,
                     ]);
+                } else {
+                    // Existe: actualizar notas solo si está vacía y hay una nueva
+                    if (empty($pivot->notas) && !empty($it['notas'])) {
+                        DB::table('farmacias_turnos')
+                            ->where('id_farmacia', $farmacia->id_farmacia)
+                            ->where('id_turno', $turno->id_turno)
+                            ->update(['notas' => $it['notas']]);
+                    }
                 }
             }
 
@@ -271,16 +286,8 @@ class OcrFarmaciasService
         return trim($tmp);
     }
 
-    private function obtenerCoordenadas(string $direccion): array
+    private function obtenerCoordenadas(string $direccion, string $ciudad): array
     {
-        $url = "https://nominatim.openstreetmap.org/search?format=json&q=" . urlencode($direccion) . "&limit=1";
-        $opts = ["http" => ["header" => "User-Agent: farmacias-turnos-app/1.0\r\n"]];
-        $context = stream_context_create($opts);
-        $json = @file_get_contents($url, false, $context);
-        if (!$json) return [null, null];
-        $data = json_decode($json, true);
-        if (empty($data)) return [null, null];
-        return [$data[0]['lat'] ?? null, $data[0]['lon'] ?? null];
+        return $this->geo->buscarVariantes($direccion, $ciudad);
     }
 }
-

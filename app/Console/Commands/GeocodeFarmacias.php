@@ -4,14 +4,15 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
+use App\Services\GeocodeService;
+use App\Helpers\OcrCleaner;
 
 class GeocodeFarmacias extends Command
 {
     protected $signature = 'farmacias:geocode';
-    protected $description = 'Actualiza las coordenadas de latitud y longitud de las farmacias usando Nominatim';
+    protected $description = 'Geocodifica farmacias usando GeocodeService';
 
-    public function handle()
+    public function handle(GeocodeService $geo)
     {
         $farmacias = DB::table('farmacias')
             ->whereNull('lat')
@@ -19,36 +20,30 @@ class GeocodeFarmacias extends Command
             ->get();
 
         foreach ($farmacias as $farmacia) {
-            $direccion = $farmacia->direccion . ', Santa Fe, Argentina';
-            $url = 'https://nominatim.openstreetmap.org/search?format=json&q=' . urlencode($direccion);
 
-            $this->info("Buscando: " . $direccion);
-            $response = Http::withHeaders([
-                'User-Agent' => 'LaravelApp (tu-email@ejemplo.com)'
-            ])->get($url);
 
-            $data = $response->json();
+            $direccionLimpia = OcrCleaner::fixStreetNames($farmacia->direccion);
 
-            if (!empty($data)) {
-                $lat = $data[0]['lat'];
-                $lon = $data[0]['lon'];
+            $this->info("Buscando: $direccionLimpia");
 
+            [$lat, $lng] = $geo->buscarVariantes($direccionLimpia, 'Santa Fe');
+
+            if ($lat && $lng) {
                 DB::table('farmacias')
                     ->where('id_farmacia', $farmacia->id_farmacia)
                     ->update([
                         'lat' => $lat,
-                        'lng' => $lon
+                        'lng' => $lng
                     ]);
 
-                $this->info("✔ Coordenadas actualizadas: {$lat}, {$lon}");
+                $this->info("✔ Coordenadas actualizadas: $lat, $lng");
             } else {
-                $this->warn("✖ No se encontraron coordenadas para: " . $farmacia->direccion);
+                $this->warn("✖ No se encontraron coordenadas para: {$farmacia->direccion}");
             }
 
-            sleep(1); // respetar el servicio público
+            sleep(1);
         }
 
-        $this->info("✅ Geocodificación completa.");
+        $this->info("✅ Geocodificación finalizada.");
     }
 }
-
