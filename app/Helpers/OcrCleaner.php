@@ -4,125 +4,106 @@ namespace App\Helpers;
 
 class OcrCleaner
 {
-    // Mantener saltos de línea; limpiar caracteres no imprimibles
-    public static function normalizeRawText(string $text): string
+    public static function fixPhone(string $line): ?string
     {
-        $text = str_replace(["\r\n", "\r"], "\n", $text);
-        // eliminar marcas HTML si llegaron
-        $text = preg_replace('/<[^>]+>/', ' ', $text);
-        // quitar caracteres raros EXCEPTO newline
-        $text = preg_replace('/[^\p{L}0-9@\.,\/\-\s\n\:\(\)]/u', ' ', $text);
-        // compactar múltiples espacios (no borra \n)
-        $text = preg_replace('/[ ]{2,}/u', ' ', $text);
-        // trim por línea
-        $lines = array_map('trim', explode("\n", $text));
-        $lines = array_filter($lines, fn($l) => $l !== '');
-        return implode("\n", $lines);
-    }
-
-    public static function fixPhone(?string $s): ?string
-    {
-        if (!$s) return null;
-        // Extraer secuencias de números plausibles
-        if (preg_match('/(\d{2,4})[^\d]{0,2}(\d{3,5})/', $s, $m)) {
-            $tel = $m[1] . $m[2];
-            // heurística local: si tiene 7 dígitos -> prefijo 342 (opcional)
-            if (strlen($tel) === 7) $tel = '342' . $tel;
-            return $tel;
+        // Buscar patrones de teléfono con separadores mal reconocidos
+        if (preg_match('/(\d{3,4})[\s\-=£\*E27]+(\d{3,5})/', $line, $m)) {
+            return $m[1] . $m[2];
         }
+
+        // Buscar solo números largos
+        if (preg_match('/\b(\d{6,8})\b/', $line, $m)) {
+            return $m[1];
+        }
+
         return null;
     }
 
-    public static function fixDateString(string $s, int $defaultYear): ?array
+    public static function normalizeName(string $nombre): string
     {
-        // Reemplazar confusiones OCR
-        $s = str_replace(['O', 'o', 'I', 'l', '|'], ['0', '0', '1', '1', '1'], $s);
-        if (preg_match('/(\d{1,2})\/(\d{1,2})/', $s, $m)) {
-            $d = intval($m[1]);
-            $mo = intval($m[2]);
-            // validación simple
-            if ($d >= 1 && $d <= 31 && $mo >= 1 && $mo <= 12) {
-                return [$d, $mo, $defaultYear];
+        // Eliminar basura común de OCR
+        $nombre = preg_replace('/\s+(nn|rrr|eee|uuu|cen|mer|nar|ana|ac|ee)\s+/i', ' ', $nombre);
+        $nombre = preg_replace('/\.\s*\.+/', '', $nombre);
+        $nombre = preg_replace('/\s+/', ' ', $nombre);
+
+        return trim($nombre);
+    }
+
+    public static function normalizeAddress(string $direccion): string
+    {
+        if (empty($direccion)) return '';
+
+        // Eliminar basura de OCR
+        $direccion = preg_replace('/\s+(nn|ac|ee)\s+/i', ' ', $direccion);
+        $direccion = preg_replace('/\.{2,}/', '', $direccion);
+        $direccion = preg_replace('/\s+/', ' ', $direccion);
+
+        // APLICAR LOS REEMPLAZOS EXACTOS DE LAS CALLES
+        foreach (self::$streetReplacements as $needle => $replacement) {
+            if (stripos($direccion, $needle) !== false) {
+                $direccion = str_ireplace($needle, $replacement, $direccion);
             }
         }
-        return null;
-    }
-
-    public static function normalizeName(?string $s): ?string
-    {
-        if (!$s) return null;
-        $s = preg_replace('/[^A-Za-zÁÉÍÓÚÑáéíóúñ0-9\.\-\&\s\']+/u', ' ', $s);
-        $s = preg_replace('/\s{2,}/', ' ', trim($s));
-        return $s;
-    }
-
-    public static function normalizeAddress(?string $s): ?string
-    {
-        if (!$s) return null;
-        $a = preg_replace('/\s{2,}/', ' ', trim($s));
-        // Normalizaciones simples
-        $a = preg_replace('/\bAV\b/i', 'Av.', $a);
-        $a = preg_replace('/\bBV\b/i', 'Bv.', $a);
-        $a = preg_replace('/\bCALLE\b/i', 'Calle', $a);
-        return $a;
-    }
-
-    private static array $streetReplacements = [
-        'Av. A. del Valle'          => 'Avenida Aristóbulo del Valle',
-        'Av. F. Zuviría'            => 'Avenida Facundo Zuviría',
-        'Av. Fdo. Zuviría'          => 'Avenida Facundo Zuviría',
-        'Av. J.J. Paso'             => 'Avenida Juan José Paso',
-        'Pte Roca'                  => 'Presidente Roca',
-        'Bv. Zavalla'               => 'Bulevar Doctor Zavalla',
-        'Av. Gral. Paz'             => 'Avenida General Paz',
-        'Salv. del Carril'          => 'Salvador del Carril ',
-        'Av. Gorriti'               => 'Gorriti',
-        'Barrio El Pozo M.8 Vda. 43' => 'Manzana 8, El Pozo',
-        'Angel Casanello'           => 'Cassanello',
-        'Dra. Grierson'             => 'Doctora Cecilia Grierson',
-        'Stgo. del Estero'          => 'Santiago del Estero',
-        'Av. Richeri'               => 'Avenida Richieri',
-        'Av. Richieri'              => 'Avenida Richieri',
-    ];
-
-    public static function fixStreetNames(string $direccion): string
-    {
-        if (!$direccion) return $direccion;
-
-        // crear patrones a partir del diccionario (escapado)
-        foreach (self::$streetReplacements as $pattern => $replacement) {
-            // transformar el patrón en una regex tolerante a puntos y espacios:
-            $p = preg_quote($pattern, '/');
-            // permitir opcionalmente puntos y espacios entre letras/abreviaturas
-            $p = str_replace(['\\ ', '\\.'], ['\\s*', '\\.?'], $p);
-
-            // busco y reemplazo todas las ocurrencias (case-insensitive)
-            $direccion = preg_replace("/\b{$p}\b/iu", $replacement, $direccion);
-        }
-
-        // compactar espacios sobrantes
-        $direccion = preg_replace('/\s{2,}/', ' ', trim($direccion));
 
         return $direccion;
     }
 
+    private static array $streetReplacements = [
+        'Barrio El Pozo M.8 Vda. 43' => 'Manzana 8, El Pozo',
+        'Av. A. del Valle'          => 'Avenida Aristóbulo del Valle',
+        'Av. Blas Parera'           => 'Avenida Blas Parera',
+        'Blas Parera'               => 'Avenida Blas Parera',
+        'Av. Fdo. Zuviría'          => 'Avenida Facundo Zuviría',
+        'Av. F. Zuviría'            => 'Avenida Facundo Zuviría',
+        'Av. J.J. Paso'             => 'Avenida Juan José Paso',
+        'Av. Gral. López'           => 'Avenida General López',
+        'Gral. López'               => 'Avenida General López',
+        'Av. Gral. Paz'             => 'Avenida General Paz',
+        'Av. G. Paz'                => 'Avenida General Paz',
+        'Av. Gorriti'               => 'Gorriti',
+        'Av. L. y Planes'           => 'Avenida López y Planes',
+        'Av. Peñaloza'              => 'Avenida Peñaloza',
+        'Av. Richeri'               => 'Avenida Richieri',
+        'Av. Urquiza'               => 'Urquiza',
+        'Pte Roca'                  => 'Presidente Roca',
+        'Bv. Zavalla'               => 'Bulevar Doctor Zavalla',
+        'Salv. del Carril'          => 'Salvador del Carril',
+        'Angel Casanello'           => 'Cassanello',
+        'Dra. Grierson'             => 'Doctora Cecilia Grierson',
+        'Stgo. del Estero'          => 'Santiago del Estero',
+        '1º de Mayo'                => '1 de Mayo',
+        'Rivadavia'                 => 'Avenida Rivadavia',
+        'M. Candioti'               => 'Marcial Candioti',
+    ];
 
-    public static function splitAddressNotes(?string $direccion): array
+
+    public static function fixStreetNames(string $direccion): string
     {
-        if (!$direccion) {
-            return [null, null];
+        if (empty($direccion)) return '';
+
+        $fixes = [
+            '/\bAV\s*\./i' => 'Av.',
+            '/\bBV\s*\./i' => 'Bv.',
+            '/\bGral\s*\./i' => 'Gral.',
+            '/\bDr\s*\./i' => 'Dr.',
+            '/\bFdo\s*\./i' => 'Fdo.',
+            '/\bStgo\s*\./i' => 'Stgo.',
+        ];
+
+        foreach ($fixes as $patron => $reemplazo) {
+            $direccion = preg_replace($patron, $reemplazo, $direccion);
         }
 
-        // Detectar separadores comunes
-        if (preg_match('/(.+?)\s*[-–\/]\s*(.+)/u', $direccion, $m)) {
-            return [trim($m[1]), trim($m[2])];
+        return $direccion;
+    }
+
+    public static function splitAddressNotes(string $direccion): array
+    {
+        // Separar notas de la dirección (ej: "Calle 123 - Local 2")
+        if (preg_match('/^(.+?)\s*-\s*(Local|Loc|P\.B\.|Piso|Dto).*$/i', $direccion, $m)) {
+            return [trim($m[1]), trim($m[0])];
         }
 
-        // Notas entre paréntesis
-        if (preg_match('/(.+?)\s*\((.+)\)/u', $direccion, $m)) {
-            return [trim($m[1]), trim($m[2])];
-        }
-
-        return [trim($direccion), null];
+        return [$direccion, null];
     }
 }
