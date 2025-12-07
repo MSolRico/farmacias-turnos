@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [TurnoController::class, 'index'])->name('dashboard');
 Route::get('/buscar', [TurnoController::class, 'buscar'])->name('buscar');
+Route::post('/farmacias/cercanas', [TurnoController::class, 'getFarmaciasCercanas']);
 
 // Reportar farmacia cerrada (público + modal pide login)
 Route::post('/reportar', [ReporteController::class, 'store'])->name('reportar.cerrada');

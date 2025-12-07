@@ -4,6 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Farmacias de Turno</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    
     <link rel="icon" href="{{ asset('capsule.svg') }}" type="image/svg+xml">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -31,15 +33,22 @@
 
                     <form action="{{ route('buscar') }}" method="GET" class="tw-flex tw-items-center tw-space-x-2 tw-flex-nowrap">
                         <input type="date" name="fecha" class="tw-h-10 tw-w-5 tw-px-2 tw-py-2 tw-bg-[#f2f5f8] tw-border-gray-300 tw-rounded-lg" style="padding-left: 6px; padding-right: 6px;" required>
-                        <select name="ciudad" class="form-select tw-inline-block tw-w-auto tw-bg-[#f2f5f8] tw-border-gray-300" required>
+                        <select name="ciudad" id="select-ciudad" class="form-select tw-inline-block tw-w-auto tw-bg-[#f2f5f8] tw-border-gray-300" required>
                             <option value="">Elegir ciudad</option>
                             @foreach($ciudades as $ciudad)
-                            <option value="{{ $ciudad->id_ciudad }}">{{ $ciudad->nombre_ciudad }}</option>
+                            <option value="{{ $ciudad->id_ciudad }}" @if(isset($ciudad_santa_fe) && $ciudad->id_ciudad == $ciudad_santa_fe->id_ciudad) selected @endif>
+                                {{ $ciudad->nombre_ciudad }}
+                            </option>
                             @endforeach
                         </select>
                         <button type="submit" class="tw-nav-button">
                             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
                                 <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
+                            </svg>
+                        </button>
+                        <button type="button" onclick="obtenerMiUbicacion()" class="tw-nav-button" title="Ordenar por mi Ubicación Actual">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-geo-alt-fill" viewBox="0 0 16 16">
+                                <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10m0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6"/>
                             </svg>
                         </button>
                     </form>
@@ -135,6 +144,9 @@
 
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
         <script>
+            // CORRECCIÓN: Se elimina la inyección PHP directa para evitar el error de variable no definida.
+            // La ciudad_actual_id ahora se obtiene dentro de la función al hacer clic en el botón.
+            
             var map = L.map('mapa');
 
             // Centrar el mapa en Santa Fe por defecto
@@ -147,6 +159,159 @@
             }).addTo(map);
 
             @yield('map_script')
+
+            // -----------------------------------------------------------------
+            // --- CÓDIGO DE GEOLOCALIZACIÓN Y DISTANCIA ---
+            // -----------------------------------------------------------------
+
+            let userMarker = null; // Marcador de la posición del usuario
+            let allFarmacyMarkers = []; // Array para guardar y limpiar los marcadores de farmacias
+            
+            // Icono de farmacia personalizado
+            const farmaciaIcon = L.icon({
+                iconUrl: 'data:image/svg+xml;charset=UTF-8,%3Csvg width="24" height="24" viewBox="0 0 24 24" fill="%236CDE58" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M12 21.7C17.3 17 20 13 20 10A8 8 0 0 0 12 2a8 8 0 0 0-8 8c0 3 2.7 7 8 11.7z"/%3E%3Cpath fill="%23FFFFFF" d="M11.5 6h1v5h-1zm-2 2h5v1h-5z"/%3E%3C/svg%3E',
+                iconSize: [30, 30],
+                iconAnchor: [15, 30],
+                popupAnchor: [0, -25],
+                className: 'farmacia-marker'
+            });
+
+            /**
+             * [Paso 1] Función para obtener la ubicación del navegador y lanzar la ordenación.
+             */
+            window.obtenerMiUbicacion = function() {
+                
+                // CORRECCIÓN: Obtener el ID de la ciudad del select, no de la inyección PHP.
+                const selectElement = document.getElementById('select-ciudad');
+                const ciudad_actual_id = selectElement ? parseInt(selectElement.value) : null;
+
+                if (!ciudad_actual_id || isNaN(ciudad_actual_id)) {
+                    alert("No se pudo determinar la ciudad para buscar turnos. Por favor, selecciona una ciudad en el filtro.");
+                    return;
+                }
+
+                if (navigator.geolocation) {
+                    const options = {
+                        enableHighAccuracy: true,
+                        timeout: 5000,
+                        maximumAge: 0
+                    };
+
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const lat = position.coords.latitude;
+                            const lng = position.coords.longitude;
+                            const userPos = [lat, lng];
+
+                            // 1. Mostrar ubicación en el mapa
+                            mostrarUbicacionEnMapa(userPos);
+                            
+                            // 2. Enviar coordenadas al servidor
+                            enviarUbicacionAlServidor(lat, lng, ciudad_actual_id);
+                        },
+                        (error) => {
+                            console.error("Error al obtener la ubicación:", error);
+                            let message = "No se pudo obtener tu ubicación. ";
+                            if (error.code === error.PERMISSION_DENIED) {
+                                message += "El usuario denegó el permiso de geolocalización.";
+                            } else {
+                                message += "Asegúrate de tener GPS o que tu conexión sea segura (HTTPS).";
+                            }
+                            alert(message);
+                        },
+                        options
+                    );
+                } else {
+                    alert("Tu navegador no soporta la Geolocalización.");
+                }
+            }
+
+            /**
+             * Muestra el marcador del usuario y centra el mapa.
+             */
+            function mostrarUbicacionEnMapa(position) {
+                if (userMarker) {
+                    map.removeLayer(userMarker);
+                }
+                
+                // Icono de círculo azul (representa al usuario)
+                const userIcon = L.divIcon({
+                    className: 'custom-user-marker',
+                    html: '<div style="background-color: blue; width: 15px; height: 15px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.5);"></div>',
+                    iconSize: [21, 21],
+                    iconAnchor: [10.5, 10.5]
+                });
+
+                userMarker = L.marker(position, { icon: userIcon }).addTo(map)
+                    .bindPopup("¡Tu Posición Actual!").openPopup();
+
+                map.setView(position, 14); 
+            }
+
+            /**
+             * [Paso 2] Realiza la llamada AJAX a la API de Laravel para ordenar farmacias.
+             */
+            function enviarUbicacionAlServidor(lat, lng, cityId) {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+                fetch('/api/farmacias/cercanas', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken 
+                    },
+                    body: JSON.stringify({ 
+                        latitud: lat, 
+                        longitud: lng,
+                        ciudad_id: cityId 
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Error en la respuesta del servidor al solicitar farmacias.');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // [Paso 3] Actualiza el mapa con los nuevos datos ordenados
+                    actualizarMapaYLista(data.farmacias);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert("Hubo un error al obtener la lista de farmacias cercanas.");
+                });
+            }
+
+            /**
+             * [Paso 3] Limpia el mapa y lo repuebla con las farmacias ordenadas.
+             */
+            function actualizarMapaYLista(farmacias) {
+                // 1. LIMPIAR MAPA: Elimina todos los marcadores de farmacias anteriores
+                allFarmacyMarkers.forEach(marker => map.removeLayer(marker));
+                allFarmacyMarkers = [];
+                
+                // 2. AÑADIR NUEVOS MARCADORES Y MOSTRAR DISTANCIA
+                farmacias.forEach((farmacia, index) => {
+                    const distance = farmacia.distancia_km.toFixed(2);
+                    const farmacyPos = [farmacia.lat, farmacia.lng]; 
+
+                    // Crea el marcador de la farmacia
+                    const marker = L.marker(farmacyPos, { icon: farmaciaIcon }).addTo(map)
+                        .bindPopup(`
+                            <b>${index + 1}. ${farmacia.nombre}</b><br>
+                            ${farmacia.direccion}<br>
+                            Distancia: **${distance} km**
+                        `);
+                    
+                    allFarmacyMarkers.push(marker); 
+                });
+                
+                // Opcional: Centrar el mapa en la primera farmacia más cercana si hay resultados
+                if (farmacias.length > 0) {
+                    map.setView([farmacias[0].lat, farmacias[0].lng], 14);
+                }
+            }
+            // --- FIN CÓDIGO DE GEOLOCALIZACIÓN Y DISTANCIA ---
         </script>
     </main>
 
