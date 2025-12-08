@@ -6,7 +6,7 @@ use App\Helpers\OcrCleaner;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
-class OcrFarmaciaValidator
+class OcrFarmaciasValidator
 {
     protected $farmaciaMatching;
 

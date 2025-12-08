@@ -14,27 +14,27 @@ class OcrCleaner
         $fecha = preg_replace('/^[lI](\d)\//', '1$1/', $fecha);
         $fecha = preg_replace('/\/[oO](\d)$/', '/0$1', $fecha);
         $fecha = preg_replace('/\s+/', '', $fecha);
-        
+
         return trim($fecha);
     }
 
     public static function extractAndFixDates(string $line): array
     {
         preg_match_all('/[-lIoO]?\d{1,2}\/\d{1,2}/', $line, $matches);
-        
+
         if (empty($matches[0])) {
             return [];
         }
-        
+
         $fechasCorregidas = [];
         foreach ($matches[0] as $fecha) {
             $fechaLimpia = self::fixDate($fecha);
-            
+
             if (self::isValidDate($fechaLimpia)) {
                 $fechasCorregidas[] = $fechaLimpia;
             }
         }
-        
+
         return $fechasCorregidas;
     }
 
@@ -43,10 +43,10 @@ class OcrCleaner
         if (!preg_match('/^(\d{1,2})\/(\d{1,2})$/', $fecha, $m)) {
             return false;
         }
-        
+
         $dia = (int)$m[1];
         $mes = (int)$m[2];
-        
+
         return $dia >= 1 && $dia <= 31 && $mes >= 1 && $mes <= 12;
     }
 
@@ -54,11 +54,18 @@ class OcrCleaner
     {
         // Buscar patrones de teléfono con separadores mal reconocidos
         if (preg_match('/(\d{3,4})[\s\-=£\*E27]+(\d{3,5})/', $line, $m)) {
-            return $m[1] . $m[2];
+            return trim($m[1]) . trim($m[2]);
         }
 
-        // Buscar solo números largos
-        if (preg_match('/\b(\d{6,8})\b/', $line, $m)) {
+        if (preg_match('/(\d{7,8})\s*$/', $line, $m)) {
+            return $m[1];
+        }
+
+        if (preg_match('/(15\d{8,9})/', $line, $m)) {
+            return $m[1];
+        }
+
+        if (preg_match('/\b(\d{7,8})\b/', $line, $m)) {
             return $m[1];
         }
 
@@ -67,9 +74,9 @@ class OcrCleaner
 
     public static function normalizeName(string $nombre): string
     {
-        // Eliminar basura común de OCR
-        $nombre = preg_replace('/\s+(nn|rrr|eee|uuu|cen|mer|nar|ana|ac|ee)\s+/i', ' ', $nombre);
-        $nombre = preg_replace('/\.\s*\.+/', '', $nombre);
+        $nombre = str_replace(['..', '...', '....'], ' ', $nombre);
+        $nombre = preg_replace('/[^\p{L}\s\.]/u', ' ', $nombre);
+        $nombre = preg_replace('/\s+(P\.?B\.?|sani)\s*$/i', '', $nombre);
         $nombre = preg_replace('/\s+/', ' ', $nombre);
 
         return trim($nombre);
@@ -80,8 +87,8 @@ class OcrCleaner
         if (empty($direccion)) return '';
 
         // Eliminar basura de OCR
-        $direccion = preg_replace('/\s+(nn|ac|ee)\s+/i', ' ', $direccion);
-        $direccion = preg_replace('/\.{2,}/', '', $direccion);
+        $direccion = preg_replace('/[^\p{L}\p{N}\s\.\-º°\/]/u', ' ', $direccion);
+        $direccion = preg_replace('/\.{2,}/', '.', $direccion);
         $direccion = preg_replace('/\s+/', ' ', $direccion);
 
         // CORRECCIÓN ESPECIAL: "avia" → "Rivadavia"
@@ -89,14 +96,18 @@ class OcrCleaner
             $direccion = preg_replace('/\b(avia)\s+/i', 'Rivadavia ', $direccion);
         }
 
-        // APLICAR LOS REEMPLAZOS EXACTOS DE LAS CALLES
+        // Reemplazos especiales de calles
+        $direccion = self::fixStreetNames($direccion);
         foreach (self::$streetReplacements as $needle => $replacement) {
             if (stripos($direccion, $needle) !== false) {
                 $direccion = str_ireplace($needle, $replacement, $direccion);
             }
         }
 
-        return $direccion;
+        // Separar notas tipo "PB", "Local", "Piso"
+        [$direccionLimpia, $nota] = self::splitAddressNotes($direccion);
+
+        return trim($direccionLimpia);
     }
 
     private static array $streetReplacements = [
@@ -118,6 +129,10 @@ class OcrCleaner
         'AV. Gral. Paz'             => 'Avenida General Paz',
         'AV Gral. Paz'              => 'Avenida General Paz',
         'Av. G. Paz'                => 'Avenida General Paz',
+        'Av. Gral Paz'              => 'Avenida General Paz',
+        'AV. Gral Paz'              => 'Avenida General Paz',
+        'AV Gral Paz'               => 'Avenida General Paz',
+        'Gral Paz'                  => 'Avenida General Paz',
         'Av. Gorriti'               => 'Gorriti',
         'AV. Gorriti'               => 'Gorriti',
         'Av. L. y Planes'           => 'Avenida López y Planes',
@@ -163,13 +178,13 @@ class OcrCleaner
         'Nellaneda'                 => 'Avellaneda',
         'ENtYE RÍos'                => 'Entre Ríos',
         'N RÍOS'                    => 'Entre Ríos',
+        'Dro Senn'                  => 'Alejandro Senn',
+        'dro Senn'                  => 'Alejandro Senn',
     ];
-    
+
 
     public static function fixStreetNames(string $direccion): string
     {
-        if (empty($direccion)) return '';
-
         $fixes = [
             '/\bAV\s*\./i' => 'Av.',
             '/\bBV\s*\./i' => 'Bv.',
@@ -183,14 +198,16 @@ class OcrCleaner
             $direccion = preg_replace($patron, $reemplazo, $direccion);
         }
 
-        return $direccion;
+        return trim($direccion);
     }
 
     public static function splitAddressNotes(string $direccion): array
     {
-        // Separar notas de la dirección (ej: "Calle 123 - Local 2")
-        if (preg_match('/^(.+?)\s*-\s*(Local|Loc|P\.B\.|Piso|Dto).*$/i', $direccion, $m)) {
-            return [trim($m[1]), trim($m[0])];
+        // Mantiene todo hasta el último número + opcionalmente PB, Local, Piso
+        if (preg_match('/^(.+\d+)\s*(?:[-,]?\s*(.*))?$/i', $direccion, $m)) {
+            $direccionLimpia = trim($m[1]);
+            $nota = isset($m[2]) ? trim($m[2]) : null;
+            return [$direccionLimpia, $nota];
         }
 
         return [$direccion, null];

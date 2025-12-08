@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use thiagoalessio\TesseractOCR\TesseractOCR;
-use App\Services\OcrFarmaciaValidator;
+use App\Services\OcrFarmaciasValidator;
 use App\Services\TurnoDataPersister;
 use App\Helpers\OcrCleaner;
 use Illuminate\Support\Str;
@@ -12,15 +12,15 @@ use Carbon\Carbon;
 
 class OcrFarmaciasService
 {
-    protected OcrFarmaciaValidator $validator;
+    protected OcrFarmaciasValidator $validator;
     protected TurnoDataPersister $persister;
     
-    // Las listas $nombresConocidos y $stopwords se movieron a OcrFarmaciaValidator.
+    // Las listas $nombresConocidos y $stopwords se movieron a OcrFarmaciasValidator.
     // La dependencia GeocodeService se movió a TurnoDataPersister.
     protected $farmaciaMatching; // Se mantiene solo si el Service principal necesita acceder a él directamente, sino se movería a Validator.
 
     public function __construct(
-        OcrFarmaciaValidator $validator,
+        OcrFarmaciasValidator $validator,
         TurnoDataPersister $persister
     )
     {
@@ -94,6 +94,8 @@ class OcrFarmaciasService
             '/\.{3,}/' => ' ',
             '/\s{2,}/' => ' ',
             '/[ceeu]{3,}/i' => ' ',
+            '/[aeiouyrcsn]{5,}/i' => ' ',
+            '/[.\-]{2,}/' => ' ',
             '/@{2,}/' => '',
             '/\s+-\s+-\s+/' => ' - ',
             '/^[^\w\s]+/' => '',
@@ -278,6 +280,14 @@ TEXTO OCR A LIMPIAR:
                 continue;
             }
 
+            // FILTRO DE NOTAS DE EXCEPCIÓN
+            $esNotaDeExcepcion = preg_match('/(s[oó]lo|solo|nota|excepci[oó]n|estará\s+de\s+turno|turno\s+especial)/iu', $line);
+
+            if ($esNotaDeExcepcion) {
+                \Log::info("[Filtro] Línea descartada de creación de turno por ser nota/excepción: {$line}");
+                continue; 
+            }
+
             // DETECTAR BLOQUE FECHAS (ej: Desde 8 hs .. 03/11 - hasta 8 hs .. 04/11)
             $fechasCorregidas = OcrCleaner::extractAndFixDates($line);
 
@@ -298,8 +308,6 @@ TEXTO OCR A LIMPIAR:
                         Carbon::create($year, $m1, $d1, 8, 0, 0),
                         Carbon::create($year, $m2, $d2, 8, 0, 0)
                     ];
-
-                    \Log::info("Turno creado: {$d1}/{$m1}/{$year} - {$d2}/{$m2}/{$year}");
                 }
                 continue;
             }
@@ -350,7 +358,7 @@ TEXTO OCR A LIMPIAR:
         // Delegar la persistencia al TurnoDataPersister
         return $this->persister->guardarEnBD($items);
     }
-
+    
     /**
      * Procesar línea individual con validación completa (DELEGACIÓN DE LÓGICA)
      */
@@ -415,11 +423,11 @@ TEXTO OCR A LIMPIAR:
             $nombre = $match['nombre_correcto'];
             
             // Usar datos de BD si los datos OCR están incompletos
-            if (!$direccion && $match['direccion_correcto']) {
+            if (!$direccion && isset($match['direccion_correcto']) && $match['direccion_correcto']) {
                 $direccion = $match['direccion_correcto'];
                 \Log::info("   → Usando dirección de BD: {$direccion}");
             }
-            if (!$telefono && $match['telefono_correcto']) {
+            if (!$telefono && isset($match['telefono_correcto']) && $match['telefono_correcto']) {
                 $telefono = $match['telefono_correcto'];
                 \Log::info("   → Usando teléfono de BD: {$telefono}");
             }

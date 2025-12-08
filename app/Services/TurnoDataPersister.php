@@ -82,7 +82,7 @@ class TurnoDataPersister
                 }
 
                 // Crear turno (si no existe)
-                $turno = Turno::firstOrCreate(
+                $turno = Turno::firstOrNew(
                     [
                         'fecha_hora_inicio' => $inicio->toDateTimeString(),
                         'fecha_hora_fin' => $fin->toDateTimeString(),
@@ -93,7 +93,15 @@ class TurnoDataPersister
                     ]
                 );
 
-                $stats['turnos']++;
+                if (!$turno->exists) {
+                    $turno->save();
+                    \Log::info("✅ Turno CREADO: {$inicio->format('d/m/Y')} - {$fin->format('d/m/Y')}");
+                } else {
+                    // Usamos DEBUG. Esto evita que los turnos ya existentes (como en la nota de excepción) inflen el log.
+                    \Log::debug("🔎 Turno ENCONTRADO (no creado): {$inicio->format('d/m/Y')} - {$fin->format('d/m/Y')}");
+                }
+
+                $stats['turnos']++; // Este contador se mantiene porque cuenta la ASIGNACIÓN de la farmacia al turno.
 
                 $pivot = DB::table('farmacias_turnos')
                     ->where('id_farmacia', $farmacia->id_farmacia)
