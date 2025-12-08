@@ -164,19 +164,19 @@ class FarmaciaSeeder extends Seeder
             ['nombre' => 'Sileoni', 'direccion' => 'Angel Casanello 519', 'telefono' => '460 4940', 'id_ciudad' => $santaFeId],
             ['nombre' => 'Bosch', 'direccion' => 'Stgo. del Estero 2764', 'telefono' => '456 9919', 'id_ciudad' => $santaFeId], // ID 122
 
-            // --- SANTA FE: UNDECIMO TURNO ---
-            ['nombre' => 'Argenti', 'direccion' => 'San Jerónimo 1746', 'telefono' => '459 2943', 'lat' => null, 'lng' => null, 'id_ciudad' => $santaFeId],
-            ['nombre' => 'Berron', 'direccion' => 'Diagonal Goyena 3221', 'telefono' => '489 4530', 'lat' => null, 'lng' => null, 'id_ciudad' => $santaFeId],
-            ['nombre' => 'Castro Karina', 'direccion' => 'Dra. Grierson 8231', 'telefono' => '155 691900', 'lat' => null, 'lng' => null, 'id_ciudad' => $santaFeId],
-            ['nombre' => 'Facino', 'direccion' => 'Diagonal España 3176', 'telefono' => '580 5041', 'lat' => null, 'lng' => null, 'id_ciudad' => $santaFeId],
-            ['nombre' => 'Labath', 'direccion' => 'Stgo. del Estero 3142 - Loc. 5', 'telefono' => '455 5146', 'lat' => null, 'lng' => null, 'id_ciudad' => $santaFeId],
-            ['nombre' => 'Martínez', 'direccion' => 'Av. Galicia 1519', 'telefono' => '460 6375', 'lat' => null, 'lng' => null, 'id_ciudad' => $santaFeId],
-            ['nombre' => 'Mónica Wagner', 'direccion' => 'Marcial Candioti 3899', 'telefono' => '452 2242', 'lat' => null, 'lng' => null, 'id_ciudad' => $santaFeId],
-            ['nombre' => 'Rita Martínez', 'direccion' => 'Av. A. del Valle 10479', 'telefono' => '469 4874', 'lat' => null, 'lng' => null, 'id_ciudad' => $santaFeId],
-            ['nombre' => 'Rojas Sotelo', 'direccion' => 'Alvear 6303', 'telefono' => '460 7603', 'lat' => null, 'lng' => null, 'id_ciudad' => $santaFeId],
-            ['nombre' => 'Pescetti Maximiliano', 'direccion' => 'Mendoza 2676', 'telefono' => '452 2928', 'lat' => null, 'lng' => null, 'id_ciudad' => $santaFeId],
-            ['nombre' => 'Scalzo', 'direccion' => 'Gobernador Vera 3206', 'telefono' => '455 3083', 'lat' => null, 'lng' => null, 'id_ciudad' => $santaFeId],
-            ['nombre' => 'Vilarrubi', 'direccion' => 'Av. Peñaloza 7512', 'telefono' => '488 3608', 'lat' => null, 'lng' => null, 'id_ciudad' => $santaFeId],
+            // GRUPO 11 (IDs 123-136)
+            ['nombre' => 'Argenti', 'direccion' => 'San Jerónimo 1746', 'telefono' => '459 2943', 'id_ciudad' => $santaFeId],
+            ['nombre' => 'Berron', 'direccion' => 'Diagonal Goyena 3221', 'telefono' => '489 4530', 'id_ciudad' => $santaFeId],
+            ['nombre' => 'Castro Karina', 'direccion' => 'Dra. Grienson 8231', 'telefono' => '155 691900', 'id_ciudad' => $santaFeId],
+            ['nombre' => 'Facino', 'direccion' => 'Diagonal España 3176', 'telefono' => '580 5041', 'id_ciudad' => $santaFeId],
+            ['nombre' => 'Labath', 'direccion' => 'Stgo. del Estero 3142 - Loc. 5', 'telefono' => '455 5146', 'id_ciudad' => $santaFeId],
+            ['nombre' => 'Martínez', 'direccion' => 'Av. Galicia 1519', 'telefono' => '460 6375', 'id_ciudad' => $santaFeId],
+            ['nombre' => 'Mónica Wagner', 'direccion' => 'Marcial Candioti 3899', 'telefono' => '452 2242', 'id_ciudad' => $santaFeId],
+            ['nombre' => 'Rita Martínez', 'direccion' => 'Av. A. del Valle 10479', 'telefono' => '469 4874', 'id_ciudad' => $santaFeId],
+            ['nombre' => 'Rojas Sotelo', 'direccion' => 'Alvear 6303', 'telefono' => '460 7603', 'id_ciudad' => $santaFeId],
+            ['nombre' => 'Pescetti Maximiliano', 'direccion' => 'Mendoza 2676', 'telefono' => '452 2928', 'id_ciudad' => $santaFeId],
+            ['nombre' => 'Scalzo', 'direccion' => 'Gobernador Vera 3206', 'telefono' => '455 3083', 'id_ciudad' => $santaFeId],
+            ['nombre' => 'Vilarrubi', 'direccion' => 'Av. Peñaloza 7512', 'telefono' => '488 3608', 'id_ciudad' => $santaFeId],
 
             // GRUPO 12 (IDs 135-147)
             ['nombre' => 'Bonazzola Estefania', 'direccion' => 'Av. del Valle 5118', 'telefono' => '452 6519', 'id_ciudad' => $santaFeId],

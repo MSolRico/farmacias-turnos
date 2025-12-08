@@ -4,7 +4,7 @@ use App\Http\Controllers\TurnoController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReporteController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ReporteController;
+
 
 Route::post('/reportar', [ReporteController::class, 'store'])->name('reportar.cerrada');
 
@@ -47,7 +47,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/reportes', [ReporteController::class, 'store'])->name('reportes.store');
     Route::get('/mis-reportes', [ReporteController::class, 'misReportes'])->name('reportes.mis-reportes');
     Route::delete('/reportes/{id}', [ReporteController::class, 'destroy'])->name('reportes.destroy');
-
 });
 
 /*
@@ -58,5 +57,4 @@ Route::middleware('auth')->group(function () {
 
 
 
-require __DIR__.'/auth.php';
-
+require __DIR__ . '/auth.php';
