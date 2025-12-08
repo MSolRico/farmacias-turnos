@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use App\Models\Farmacia;
-use App\Models\Ciudad;
 
 class TurnoFarmaciaSeeder extends Seeder
 {
@@ -37,29 +36,54 @@ class TurnoFarmaciaSeeder extends Seeder
             'st_2' => ['name' => 'Farmacia Stessens', 'dutyDates' => ["2025-10-06", "2025-10-15", "2025-10-24"]],
             'st_3' => ['name' => 'Farmacia Daniel Lagger', 'dutyDates' => ["2025-10-07", "2025-10-16", "2025-10-25"]],
             'st_4' => ['name' => 'Farmacia Villata', 'dutyDates' => ["2025-10-07", "2025-10-16", "2025-10-25"]],
-            'st_5' => ['name' => 'Farmacia Ghersi', 'dutyDates' => ["2025-11-13", "2025-11-17", "2025-11-26"]],
-            'st_6' => ['name' => 'Farmacia Capra', 'dutyDates' => ["2025-11-13", "2025-11-17", "2025-11-26"]],
+            'st_5' => ['name' => 'Farmacia Ghersi', 'dutyDates' => ["2025-10-08", "2025-10-17", "2025-10-26"]],
+            'st_6' => ['name' => 'Farmacia Capra', 'dutyDates' => ["2025-10-08", "2025-10-17", "2025-10-26"]],
         ];
 
-        foreach ($pharmaciesData as $id => $data) {
-            $farmacia = Farmacia::where('nombre', $data['name'])->first();
+        // 1. Procesar Grupos de Santa Fe
+        foreach ($santaFeGroups as $groupKey => $data) {
+            $this->assignTurns($data['pharmacies'], $data['dates']);
+        }
+
+        // 2. Procesar Grupos de Santo Tomé
+        foreach ($santoTomeGroups as $groupKey => $data) {
+            $this->assignTurns($data['pharmacies'], $data['dates']);
+        }
+
+        // 3. Procesar Excepciones
+        foreach ($excepciones as $exc) {
+            $this->assignTurns([$exc['nombre']], $exc['fechas']);
+        }
+    }
+
+    /**
+     * Función auxiliar para asignar fechas a una lista de farmacias
+     */
+    private function assignTurns($pharmacyNames, $dates)
+    {
+        foreach ($pharmacyNames as $name) {
+            $farmacia = Farmacia::where('nombre', $name)->first();
 
             if ($farmacia) {
-                foreach ($data['dutyDates'] as $date) {
-                    // Crea un registro en la tabla turnos
+                foreach ($dates as $date) {
+                    // Crea un registro en la tabla turnos (Uno nuevo por cada fecha/farmacia según tu estructura original)
                     $turnoId = DB::table('turnos')->insertGetId([
                         'nombre_turno' => 'Turno ' . $date,
                         'fecha_hora_inicio' => $date . ' 08:00:00',
-                        'fecha_hora_fin' => $date . ' 20:00:00',
+                        // El turno termina a las 8 AM del día siguiente
+                        'fecha_hora_fin' => date('Y-m-d', strtotime($date . ' +1 day')) . ' 08:00:00',
                         'id_ciudad' => $farmacia->id_ciudad,
                     ]);
 
-                    // Crea el registro de relación en la tabla farmacias_turnos
+                    // Crea el registro de relación
                     DB::table('farmacias_turnos')->insert([
                         'id_farmacia' => $farmacia->id_farmacia,
                         'id_turno' => $turnoId,
                     ]);
                 }
+            } else {
+                // Opcional: Loguear si no se encuentra alguna farmacia (útil para debug)
+                // echo "Warning: Farmacia no encontrada: $name \n";
             }
         }
     }

@@ -15,7 +15,7 @@
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body style="background-color: rgb(242, 245, 248);">
+    <body>
         <div class="container py-5 d-flex align-items-center" style="min-height: 100vh;">
             <div class="w-100">
                 <div class="d-flex justify-content-center mb-3">

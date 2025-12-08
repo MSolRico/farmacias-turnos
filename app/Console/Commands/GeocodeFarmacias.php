@@ -4,51 +4,78 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
+use App\Services\GeocodeService;
+use App\Helpers\OcrCleaner;
 
 class GeocodeFarmacias extends Command
 {
     protected $signature = 'farmacias:geocode';
-    protected $description = 'Actualiza las coordenadas de latitud y longitud de las farmacias usando Nominatim';
+    protected $description = 'Geocodifica farmacias usando GeocodeService y limpieza avanzada de direcciones OCR';
 
-    public function handle()
+    public function handle(GeocodeService $geo)
     {
         $farmacias = DB::table('farmacias')
             ->whereNull('lat')
             ->orWhereNull('lng')
+            ->orderBy('id_farmacia')
             ->get();
 
+        if ($farmacias->isEmpty()) {
+            $this->info("No hay farmacias pendientes de geocodificación.");
+            return;
+        }
+
         foreach ($farmacias as $farmacia) {
-            $direccion = $farmacia->direccion . ', Santa Fe, Argentina';
-            $url = 'https://nominatim.openstreetmap.org/search?format=json&q=' . urlencode($direccion);
 
-            $this->info("Buscando: " . $direccion);
-            $response = Http::withHeaders([
-                'User-Agent' => 'LaravelApp (tu-email@ejemplo.com)'
-            ])->get($url);
+            $this->line("----------------------------------------------------");
+            $this->info("📍 Procesando ID: {$farmacia->id_farmacia}");
+            $this->info("Dirección original: {$farmacia->direccion}");
 
-            $data = $response->json();
+            // 1) Normalización OCR
+            $direccion = OcrCleaner::normalizeAddress($farmacia->direccion);
 
-            if (!empty($data)) {
-                $lat = $data[0]['lat'];
-                $lon = $data[0]['lon'];
+            // 2) Corrección de nombres de calle
+            $direccion = OcrCleaner::fixStreetNames($direccion);
+
+            // 3) Separar dirección de notas tipo “Local 2”
+            [$direccionBase, $nota] = OcrCleaner::splitAddressNotes($direccion);
+
+            // 4) Trim profundo
+            $direccionBase = trim($direccionBase);
+
+            $this->info("➡ Dirección normalizada: $direccionBase" . ($nota ? " (nota: $nota)" : ""));
+
+            // Evitar enviar basura vacía al geocoder
+            if (strlen($direccionBase) < 3) {
+                $this->warn("⚠ Dirección demasiado corta o inválida, saltando.");
+                continue;
+            }
+
+            // Ciudad fija porque en DB no está cargada → si querés se puede leer desde tabla ciudad
+            $ciudad = 'Santa Fe';
+
+            // 5) Geocodificación con variantes
+            [$lat, $lng] = $geo->buscarVariantes($direccionBase, $ciudad);
+
+            if ($lat && $lng) {
 
                 DB::table('farmacias')
                     ->where('id_farmacia', $farmacia->id_farmacia)
                     ->update([
                         'lat' => $lat,
-                        'lng' => $lon
+                        'lng' => $lng
                     ]);
 
-                $this->info("✔ Coordenadas actualizadas: {$lat}, {$lon}");
+                $this->info("✔ Coordenadas encontradas: LAT $lat | LNG $lng");
+
             } else {
-                $this->warn("✖ No se encontraron coordenadas para: " . $farmacia->direccion);
+                $this->warn("✖ No se encontraron coordenadas para: {$farmacia->direccion}");
             }
 
-            sleep(1); // respetar el servicio público
+            // Evitar bloquear el rate limit de Nominatim
+            sleep(1);
         }
 
-        $this->info("✅ Geocodificación completa.");
+        $this->info("🎉 Geocodificación finalizada.");
     }
 }
-

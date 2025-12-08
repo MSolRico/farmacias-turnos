@@ -34,7 +34,7 @@
 
         <div class="flex items-center justify-end mt-4">
             @if (Route::has('password.request'))
-            <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('password.request') }}">
+            <a class="underline text-sm text-success hover:text-green-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500" href="{{ route('password.request') }}">
                 {{ __('Olvido su contraseña?') }}
             </a>
             @endif
@@ -57,7 +57,7 @@
     <div class="flex items-center justify-center gap-2 mt-6 text-sm text-gray-700">
         <span>¿No tenés una cuenta?</span>
         <a href="{{ route('register') }}" 
-           class="px-3 py-1 border border-blue-500 text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition">
+           class="px-3 py-1 border border-blue-500 text-success rounded-lg font-medium hover:bg-blue-50 transition">
             {{ __('Registrate aquí') }}
         </a>
     </div>
