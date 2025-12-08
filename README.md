@@ -3,6 +3,9 @@
 Aplicación web/móvil enfocada en la localización eficiente y precisa de farmacias de guardia.
 Este repositorio aloja el código backend y la lógica de negocio, incluyendo el proceso de ingesta y geolocalización de datos.
 
+<img width="1285" height="910" alt="caprura 1" src="https://github.com/user-attachments/assets/764c3223-03d6-4e04-bcd1-68149946bf40" />
+
+
 **Link al Proyecto:** [https://github.com/ricardo-lechman/farmacias-turnos](https://github.com/ricardo-lechman/farmacias-turnos)
 
 ## 🚀 Tecnologías Clave

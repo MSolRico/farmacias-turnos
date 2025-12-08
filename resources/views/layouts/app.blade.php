@@ -4,6 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Farmacias de Turno</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
     <link rel="icon" href="{{ asset('capsule.svg') }}" type="image/svg+xml">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -29,15 +31,22 @@
 
                     <form action="{{ route('buscar') }}" method="GET" class="tw-flex tw-items-center tw-space-x-2 tw-flex-nowrap">
                         <input type="date" name="fecha" class="tw-h-10 tw-w-5 tw-px-2 tw-py-2 tw-bg-[#f2f5f8] tw-border-gray-300 tw-rounded-lg" style="padding-left: 6px; padding-right: 6px;" required>
-                        <select name="ciudad" class="form-select tw-inline-block tw-w-auto tw-bg-[#f2f5f8] tw-border-gray-300" required>
+                        <select name="ciudad" id="select-ciudad" class="form-select tw-inline-block tw-w-auto tw-bg-[#f2f5f8] tw-border-gray-300" required>
                             <option value="">Elegir ciudad</option>
                             @foreach($ciudades as $ciudad)
-                            <option value="{{ $ciudad->id_ciudad }}">{{ $ciudad->nombre_ciudad }}</option>
+                            <option value="{{ $ciudad->id_ciudad }}" @if(isset($ciudad_santa_fe) && $ciudad->id_ciudad == $ciudad_santa_fe->id_ciudad) selected @endif>
+                                {{ $ciudad->nombre_ciudad }}
+                            </option>
                             @endforeach
                         </select>
                         <button type="submit" class="tw-nav-button">
                             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
                                 <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
+                            </svg>
+                        </button>
+                        <button type="button" onclick="obtenerMiUbicacion()" class="tw-nav-button" title="Ordenar por mi Ubicación Actual">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-geo-alt-fill" viewBox="0 0 16 16">
+                                <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10m0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6" />
                             </svg>
                         </button>
                     </form>
@@ -132,7 +141,20 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
 
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-        @yield('map_script')
+        <script>
+            var map = L.map('mapa');
+
+            // Centrar el mapa en Santa Fe por defecto
+            var lat_sf = -31.649;
+            var lng_sf = -60.700;
+            map.setView([lat_sf, lng_sf], 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            @yield('map_script')
+        </script>
     </main>
 
     <x-modal name="login" focusable maxWidth="md">
