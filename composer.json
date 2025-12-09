@@ -16,7 +16,7 @@
         "smalot/pdfparser": "^2.12",
         "spatie/pdf-to-image": "^1.2",
         "symfony/css-selector": "^7.4",
-        "symfony/dom-crawler": "^8.0",
+        "symfony/dom-crawler": "^7.0",
         "thiagoalessio/tesseract_ocr": "^2.13"
     },
     "require-dev": {

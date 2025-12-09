@@ -5,15 +5,16 @@ namespace App\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\DomCrawler\Crawler;
+use Carbon\Carbon;
 
 class TurnosPdfScraper
 {
     private const BASE_URL = 'https://colfarsfe.org.ar';
-    private const TURNOS_PAGE_URL = 'https://colfarsfe.org.ar/farmacias/'; // ← URL CORRECTA
+    private const TURNOS_PAGE_URL = 'https://colfarsfe.org.ar/farmacias/';
 
     /**
- * Extrae la URL del PDF más reciente desde la página del colegio
- */
+     * Extrae la URL del PDF más reciente desde la página del colegio
+     */
     public function extractPdfUrl(): array
     {
         try {
@@ -22,21 +23,20 @@ class TurnosPdfScraper
             $headers = [
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language' => 'es-AR,es;q=0.9',
             ];
 
             // Estrategias múltiples
             $strategies = [
                 fn() => $this->scrapeFromFarmaciasPage($headers),
                 fn() => $this->scrapeFromHomePage($headers),
-                fn() => $this->scrapeFromWpUploads($headers),
+                fn() => $this->scrapeFromWpUploads($headers), // Predicción directa
             ];
 
             foreach ($strategies as $index => $strategy) {
                 try {
                     $result = $strategy();
                     if ($result['success']) {
-                        Log::info("✅ Estrategia " . ($index + 1) . " exitosa");
+                        Log::info("✅ Estrategia " . ($index + 1) . " exitosa: " . $result['url']);
                         return $result;
                     }
                 } catch (\Exception $e) {
@@ -47,10 +47,7 @@ class TurnosPdfScraper
 
             throw new \Exception('No se pudo extraer la URL del PDF con ninguna estrategia');
         } catch (\Exception $e) {
-            Log::error('Error al extraer URL del PDF', [
-                'error' => $e->getMessage(),
-            ]);
-
+            Log::error('Error al extraer URL del PDF', ['error' => $e->getMessage()]);
             return [
                 'success' => false,
                 'url' => null,
@@ -60,15 +57,13 @@ class TurnosPdfScraper
     }
 
     /**
- * Estrategia 1: Scraping de /farmacias/
- */
+     * Estrategia 1: Scraping de /farmacias/
+     */
     private function scrapeFromFarmaciasPage(array $headers): array
     {
         Log::info('Estrategia 1: Scraping de /farmacias/');
 
-        $response = Http::withHeaders($headers)
-            ->timeout(30)
-            ->get(self::TURNOS_PAGE_URL);
+        $response = Http::withHeaders($headers)->timeout(30)->get(self::TURNOS_PAGE_URL);
 
         if (!$response->successful()) {
             throw new \Exception("HTTP {$response->status()}");
@@ -77,31 +72,23 @@ class TurnosPdfScraper
         $crawler = new Crawler($response->body());
         $pdfUrl = $this->findPdfLink($crawler);
 
-        if (!$pdfUrl) {
-            throw new \Exception('No se encontró PDF');
-        }
-
-        $pdfUrl = $this->normalizeUrl($pdfUrl);
-
-        Log::info('PDF encontrado en /farmacias/', ['url' => $pdfUrl]);
+        if (!$pdfUrl) throw new \Exception('No se encontró PDF en el HTML');
 
         return [
             'success' => true,
-            'url' => $pdfUrl,
+            'url' => $this->normalizeUrl($pdfUrl),
             'message' => 'URL extraída desde /farmacias/',
         ];
     }
 
     /**
- * Estrategia 2: Scraping de página principal
- */
+     * Estrategia 2: Scraping de página principal
+     */
     private function scrapeFromHomePage(array $headers): array
     {
         Log::info('Estrategia 2: Scraping de página principal');
 
-        $response = Http::withHeaders($headers)
-            ->timeout(30)
-            ->get(self::BASE_URL);
+        $response = Http::withHeaders($headers)->timeout(30)->get(self::BASE_URL);
 
         if (!$response->successful()) {
             throw new \Exception("HTTP {$response->status()}");
@@ -110,44 +97,59 @@ class TurnosPdfScraper
         $crawler = new Crawler($response->body());
         $pdfUrl = $this->findPdfLink($crawler);
 
-        if (!$pdfUrl) {
-            throw new \Exception('No se encontró PDF');
-        }
-
-        $pdfUrl = $this->normalizeUrl($pdfUrl);
+        if (!$pdfUrl) throw new \Exception('No se encontró PDF en Home');
 
         return [
             'success' => true,
-            'url' => $pdfUrl,
+            'url' => $this->normalizeUrl($pdfUrl),
             'message' => 'URL extraída desde página principal',
         ];
     }
 
     /**
- * Estrategia 3: Predicción de URL en wp-content/uploads
- */
+     * Estrategia 3: Predicción de URL en wp-content/uploads
+     * (MEJORADA: Usa array fijo de meses para evitar error de idioma)
+     */
     private function scrapeFromWpUploads(array $headers): array
     {
         Log::info('Estrategia 3: Predicción de URL');
 
         $year = now()->year;
         $month = now()->format('m');
-        $monthName = ucfirst(now()->translatedFormat('F'));
+
+        // Array fijo para garantizar español sin depender del servidor
+        $meses = [
+            '01' => 'Enero',
+            '02' => 'Febrero',
+            '03' => 'Marzo',
+            '04' => 'Abril',
+            '05' => 'Mayo',
+            '06' => 'Junio',
+            '07' => 'Julio',
+            '08' => 'Agosto',
+            '09' => 'Septiembre',
+            '10' => 'Octubre',
+            '11' => 'Noviembre',
+            '12' => 'Diciembre'
+        ];
+
+        $monthName = $meses[$month];
 
         $possibleUrls = [
-            "https://colfarsfe.org.ar/wp-content/uploads/{$year}/{$month}/Afiche-de-Turnos-{$monthName}-{$year}-1.pdf",
-            "https://colfarsfe.org.ar/wp-content/uploads/{$year}/{$month}/Afiche-de-Turnos-{$monthName}-{$year}.pdf",
+            // Variantes comunes observadas en el colegio
             "https://colfarsfe.org.ar/wp-content/uploads/{$year}/{$month}/Afiche-Turnos-{$monthName}-{$year}.pdf",
+            "https://colfarsfe.org.ar/wp-content/uploads/{$year}/{$month}/Afiche-de-Turnos-{$monthName}-{$year}.pdf",
+            "https://colfarsfe.org.ar/wp-content/uploads/{$year}/{$month}/Afiche-de-Turnos-{$monthName}-{$year}-1.pdf",
             "https://colfarsfe.org.ar/wp-content/uploads/{$year}/{$month}/Turnos-{$monthName}-{$year}.pdf",
         ];
 
         foreach ($possibleUrls as $url) {
             try {
-                $response = Http::withHeaders($headers)->timeout(10)->head($url);
+                Log::info("Probando URL: $url"); // Log para ver qué está intentando
+                $response = Http::withHeaders($headers)->timeout(5)->head($url);
 
                 if ($response->successful() && str_contains($response->header('Content-Type'), 'pdf')) {
                     Log::info('PDF encontrado por predicción', ['url' => $url]);
-
                     return [
                         'success' => true,
                         'url' => $url,
@@ -163,52 +165,36 @@ class TurnosPdfScraper
     }
 
     /**
- * Busca el enlace al PDF en el HTML
- */
+     * Busca el enlace al PDF en el HTML
+     */
     private function findPdfLink(Crawler $crawler): ?string
     {
         $strategies = [
-            // Estrategia 1: SOLO PDFs con "Afiche" Y "Turno" en el nombre
+            // 1. Enlace que contenga "Afiche" y "Turno"
             fn() => collect($crawler->filter('a[href*=".pdf"]')->each(fn($node) => $node->attr('href')))
-                ->first(
-                    fn($href) =>
-                    str_contains(strtolower($href), 'afiche') &&
-                        str_contains(strtolower($href), 'turno')
-                ),
+                ->first(fn($href) => stripos($href, 'afiche') !== false && stripos($href, 'turno') !== false),
 
-            // Estrategia 2: Por data-id específico (el elemento exacto del HTML)
-            fn() => $crawler->filter('[data-id="7dce977"] a[href*=".pdf"]')->first()->attr('href'),
+            // 2. Data ID específico (puede cambiar, es frágil)
+            fn() => $crawler->filter('[data-id="7dce977"] a[href*=".pdf"]')->count() > 0
+                ? $crawler->filter('[data-id="7dce977"] a[href*=".pdf"]')->first()->attr('href')
+                : null,
 
-            // Estrategia 3: PDF con "Turno" en la URL (pero NO "Inspeccion" ni "guia")
+            // 3. Cualquier PDF con "Turno" en el nombre (excluyendo inspección/guía)
             fn() => collect($crawler->filter('a[href*=".pdf"]')->each(fn($node) => $node->attr('href')))
-                ->filter(fn($href) => str_contains(strtolower($href), 'turno'))
-                ->filter(fn($href) => !str_contains(strtolower($href), 'inspeccion'))
-                ->filter(fn($href) => !str_contains(strtolower($href), 'guia'))
+                ->filter(fn($href) => stripos($href, 'turno') !== false)
+                ->filter(fn($href) => stripos($href, 'inspeccion') === false)
+                ->filter(fn($href) => stripos($href, 'guia') === false)
                 ->first(),
 
-            // Estrategia 4: Imagen específica "Farmacias-de-turno.png"
-            fn() => $crawler->filter('img[src*="Farmacias-de-turno.png"]')
-                ->ancestors()
-                ->filter('a[href*=".pdf"]')
-                ->first()
-                ->attr('href'),
-
-            // Estrategia 5: PDF del mes actual en la URL
-            fn() => collect($crawler->filter('a[href*=".pdf"]')->each(fn($node) => $node->attr('href')))
-                ->first(
-                    fn($href) =>
-                    str_contains(strtolower($href), strtolower(now()->translatedFormat('F'))) ||
-                        str_contains(strtolower($href), now()->format('Y-m'))
-                ),
+            // 4. Buscar por imagen "Farmacias-de-turno"
+            fn() => $crawler->filter('img[src*="Farmacias-de-turno"]')->count() > 0
+                ? $crawler->filter('img[src*="Farmacias-de-turno"]')->ancestors()->filter('a[href*=".pdf"]')->first()->attr('href')
+                : null
         ];
 
-        foreach ($strategies as $index => $strategy) {
+        foreach ($strategies as $strategy) {
             try {
-                $link = $strategy();
-                if ($link) {
-                    Log::debug("PDF encontrado con estrategia " . ($index + 1), ['url' => $link]);
-                    return $link;
-                }
+                if ($link = $strategy()) return $link;
             } catch (\Exception $e) {
                 continue;
             }
@@ -217,47 +203,23 @@ class TurnosPdfScraper
         return null;
     }
 
-    /**
- * Normaliza la URL
- */
     private function normalizeUrl(string $url): string
     {
-        if (parse_url($url, PHP_URL_SCHEME)) {
-            return $url;
-        }
-
-        if (str_starts_with($url, '//')) {
-            return 'https:' . $url;
-        }
-
-        if (str_starts_with($url, '/')) {
-            return self::BASE_URL . $url;
-        }
-
-        return self::BASE_URL . '/' . $url;
+        if (parse_url($url, PHP_URL_SCHEME)) return $url;
+        if (str_starts_with($url, '//')) return 'https:' . $url;
+        return str_starts_with($url, '/') ? self::BASE_URL . $url : self::BASE_URL . '/' . $url;
     }
 
-    /**
- * Obtiene metadata del PDF
- */
     public function getPdfMetadata(string $url): ?array
     {
         try {
-            $response = Http::timeout(10)
-                ->withHeaders(['User-Agent' => 'Mozilla/5.0'])
-                ->head($url);
-
-            if (!$response->successful()) {
-                return null;
-            }
-
-            return [
+            $response = Http::timeout(5)->head($url);
+            return $response->successful() ? [
                 'content_type' => $response->header('Content-Type'),
                 'content_length' => $response->header('Content-Length'),
                 'last_modified' => $response->header('Last-Modified'),
-            ];
+            ] : null;
         } catch (\Exception $e) {
-            Log::warning('No se pudo obtener metadata', ['error' => $e->getMessage()]);
             return null;
         }
     }

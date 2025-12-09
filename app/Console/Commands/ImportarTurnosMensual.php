@@ -6,61 +6,66 @@ use Illuminate\Console\Command;
 use App\Services\TurnosPdfDownloader;
 use App\Services\OcrFarmaciasService;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 
 class ImportarTurnosMensual extends Command
 {
-    protected $signature = 'turnos:importar {--force : Forzar descarga del PDF aunque exista uno reciente}';
-    protected $description = 'Descarga el PDF de turnos de farmacias, ejecuta OCR y actualiza la base de datos';
+    // Agregamos la opción {--local}
+    protected $signature = 'turnos:importar {--force : Forzar descarga} {--local : Usar archivo existente sin descargar}';
+    protected $description = 'Procesa turnos de farmacias (descarga o local)';
 
-    private TurnosPdfDownloader $downloader;
-    private OcrFarmaciasService $ocrService;
-
-    public function __construct(TurnosPdfDownloader $downloader, OcrFarmaciasService $ocrService)
-    {
+    public function __construct(
+        private TurnosPdfDownloader $downloader,
+        private OcrFarmaciasService $ocrService
+    ) {
         parent::__construct();
-        $this->downloader = $downloader;
-        $this->ocrService = $ocrService;
     }
 
     public function handle(): int
     {
-        $this->info('🔄 Iniciando importación de turnos mensuales');
+        $this->info('🔄 Iniciando proceso de importación...');
 
-        $force = $this->option('force') ?? false;
+        $pdfPath = null;
 
-        // 1️⃣ Descargar PDF
-        $this->info('📥 Descargando PDF...');
-        $downloadResult = $this->downloader->downloadLatest($force);
+        // MODO LOCAL: Usar archivo existente
+        if ($this->option('local')) {
+            $this->info('📂 Modo LOCAL activado. Buscando archivo existente...');
+            $pdfPath = $this->downloader->getLatestLocalPdfPath();
 
-        if (!$downloadResult['success']) {
-            $this->error('❌ Error descargando PDF: ' . $downloadResult['message']);
-            Log::error('ImportarTurnosMensual: descarga PDF fallida', $downloadResult);
-            return 1;
+            if (!$pdfPath) {
+                $this->error('❌ No se encontró ningún PDF local en storage/app/turnos/pdfs');
+                return 1;
+            }
+            $this->info("✅ Archivo local encontrado: $pdfPath");
+        }
+        // MODO ONLINE: Descargar
+        else {
+            $this->info('📥 Verificando PDF en la web...');
+            $downloadResult = $this->downloader->downloadLatest($this->option('force'));
+
+            if (!$downloadResult['success']) {
+                $this->error('❌ Error descarga: ' . $downloadResult['message']);
+                return 1;
+            }
+
+            if (isset($downloadResult['skipped']) && $downloadResult['skipped']) {
+                $this->info('⏭️  ' . $downloadResult['message']);
+                return 0;
+            }
+            $pdfPath = $downloadResult['path'];
         }
 
-        $pdfPath = $downloadResult['path'];
-        $this->info("✅ PDF descargado en: $pdfPath");
-
-        // 2️⃣ Ejecutar OCR y procesar PDF
-        $this->info('📝 Ejecutando OCR y procesando farmacias...');
+        // 2️⃣ Ejecutar OCR
+        $this->info('📝 Procesando con IA/OCR...');
         $ocrResult = $this->ocrService->procesar($pdfPath);
 
         if (isset($ocrResult['error'])) {
-            $this->error('❌ Error procesando OCR: ' . $ocrResult['error']);
-            Log::error('ImportarTurnosMensual: OCR fallido', $ocrResult);
+            $this->error('❌ Error OCR: ' . $ocrResult['error']);
             return 1;
         }
 
-        $this->info("✅ Farmacias importadas: {$ocrResult['farmacias']}, Turnos: {$ocrResult['turnos']}");
-        Log::info('ImportarTurnosMensual: importación completada', $ocrResult);
-
-        // 3️⃣ Limpiar PDFs antiguos (opcional)
-        $this->info('🗑 Limpiando PDFs antiguos...');
-        $this->downloader->cleanOldPdfs();
-        $this->info('✅ Limpieza completada');
-
-        $this->info('🎉 Importación de turnos finalizada correctamente');
+        $this->info("✅ Importación Exitosa.");
+        $this->info("📊 Farmacias detectadas: {$ocrResult['farmacias']}");
+        $this->info("📅 Turnos creados: {$ocrResult['turnos']}");
 
         return 0;
     }

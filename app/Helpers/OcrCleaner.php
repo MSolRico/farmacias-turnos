@@ -6,41 +6,67 @@ class OcrCleaner
 {
     /**
      * Corrige fechas mal reconocidas por OCR
-     * Ejemplos: -4/12 → 24/12, -0/12 → 20/12, -1/12 → 21/12
+     * Ejemplos: -4/12 → 24/12, 6-12 → 06/12, 6.12 → 06/12
      */
     public static function fixDate(string $fecha): string
     {
-        $fecha = preg_replace('/^-(\d)\//', '2$1/', $fecha);
-        $fecha = preg_replace('/^[lI](\d)\//', '1$1/', $fecha);
-        $fecha = preg_replace('/\/[oO](\d)$/', '/0$1', $fecha);
+        // Limpiar espacios internos (ej: "06 / 12" -> "06/12")
         $fecha = preg_replace('/\s+/', '', $fecha);
+
+        // Normalizar separadores (puntos o guiones a barras)
+        $fecha = str_replace(['.', '-'], '/', $fecha);
+
+        // Corregir errores comunes de OCR en el primer dígito
+        // Ej: "-4/12" suele ser "24/12", "l6/12" es "16/12", "!2/12" es "12/12"
+        $fecha = preg_replace('/^-(\d)\//', '2$1/', $fecha);
+        $fecha = preg_replace('/^[lI|!](\d)\//', '1$1/', $fecha);
+        $fecha = preg_replace('/\/[oO](\d)$/', '/0$1', $fecha);
+
+        // Asegurar formato DD/MM (agregar ceros iniciales si faltan)
+        if (preg_match('/^(\d{1,2})\/(\d{1,2})$/', $fecha, $m)) {
+            $dia = str_pad($m[1], 2, '0', STR_PAD_LEFT);
+            $mes = str_pad($m[2], 2, '0', STR_PAD_LEFT);
+            return "$dia/$mes";
+        }
 
         return trim($fecha);
     }
 
     public static function extractAndFixDates(string $line): array
     {
-        preg_match_all('/[-lIoO]?\d{1,2}\/\d{1,2}/', $line, $matches);
+        // REGEX MEJORADO:
+        // 1. [-lIoO]? : Opcional prefijo de basura OCR
+        // 2. \d{1,2}  : Día (1 o 2 dígitos)
+        // 3. \s*[\/\.-]\s* : Separador (barra, punto, guion) con espacios opcionales
+        // 4. \d{1,2}  : Mes
+        preg_match_all('/(?:^|[\s\(\[])([-lIoO]?\d{1,2}\s*[\/\.-]\s*\d{1,2})(?:$|[\s\)\]])/', $line, $matches);
 
-        if (empty($matches[0])) {
+        if (empty($matches[1])) {
+            // INTENTO EXTRA: Buscar formato "Día X" (ej: "Viernes 6") asumiendo mes actual (12)
+            // Esto es crucial para Santo Tomé si el formato es distinto
+            if (preg_match('/(?:Lunes|Martes|Mi[eé]rcoles|Jueves|Viernes|S[aá]bado|Domingo|D[ií]a)\s+(\d{1,2})\b/iu', $line, $m)) {
+                $dia = str_pad($m[1], 2, '0', STR_PAD_LEFT);
+                $mes = '12'; // Asumimos Diciembre por el contexto del archivo
+                return ["$dia/$mes"];
+            }
             return [];
         }
 
         $fechasCorregidas = [];
-        foreach ($matches[0] as $fecha) {
-            $fechaLimpia = self::fixDate($fecha);
+        foreach ($matches[1] as $fechaRaw) {
+            $fechaLimpia = self::fixDate($fechaRaw);
 
             if (self::isValidDate($fechaLimpia)) {
                 $fechasCorregidas[] = $fechaLimpia;
             }
         }
 
-        return $fechasCorregidas;
+        return array_values(array_unique($fechasCorregidas));
     }
 
     private static function isValidDate(string $fecha): bool
     {
-        if (!preg_match('/^(\d{1,2})\/(\d{1,2})$/', $fecha, $m)) {
+        if (!preg_match('/^(\d{2})\/(\d{2})$/', $fecha, $m)) {
             return false;
         }
 
@@ -52,23 +78,18 @@ class OcrCleaner
 
     public static function fixPhone(string $line): ?string
     {
-        // Buscar patrones de teléfono con separadores mal reconocidos
         if (preg_match('/(\d{3,4})[\s\-=£\*E27]+(\d{3,5})/', $line, $m)) {
             return trim($m[1]) . trim($m[2]);
         }
-
         if (preg_match('/(\d{7,8})\s*$/', $line, $m)) {
             return $m[1];
         }
-
         if (preg_match('/(15\d{8,9})/', $line, $m)) {
             return $m[1];
         }
-
         if (preg_match('/\b(\d{7,8})\b/', $line, $m)) {
             return $m[1];
         }
-
         return null;
     }
 
@@ -78,7 +99,6 @@ class OcrCleaner
         $nombre = preg_replace('/[^\p{L}\s\.]/u', ' ', $nombre);
         $nombre = preg_replace('/\s+(P\.?B\.?|sani)\s*$/i', '', $nombre);
         $nombre = preg_replace('/\s+/', ' ', $nombre);
-
         return trim($nombre);
     }
 
@@ -86,17 +106,14 @@ class OcrCleaner
     {
         if (empty($direccion)) return '';
 
-        // Eliminar basura de OCR
         $direccion = preg_replace('/[^\p{L}\p{N}\s\.\-º°\/]/u', ' ', $direccion);
         $direccion = preg_replace('/\.{2,}/', '.', $direccion);
         $direccion = preg_replace('/\s+/', ' ', $direccion);
 
-        // CORRECCIÓN ESPECIAL: "avia" → "Rivadavia"
         if (preg_match('/\b(avia)\s+\d+/i', $direccion)) {
             $direccion = preg_replace('/\b(avia)\s+/i', 'Rivadavia ', $direccion);
         }
 
-        // Reemplazos especiales de calles
         $direccion = self::fixStreetNames($direccion);
         foreach (self::$streetReplacements as $needle => $replacement) {
             if (stripos($direccion, $needle) !== false) {
@@ -104,9 +121,7 @@ class OcrCleaner
             }
         }
 
-        // Separar notas tipo "PB", "Local", "Piso"
         [$direccionLimpia, $nota] = self::splitAddressNotes($direccion);
-
         return trim($direccionLimpia);
     }
 
@@ -182,7 +197,6 @@ class OcrCleaner
         'dro Senn'                  => 'Alejandro Senn',
     ];
 
-
     public static function fixStreetNames(string $direccion): string
     {
         $fixes = [
@@ -197,19 +211,16 @@ class OcrCleaner
         foreach ($fixes as $patron => $reemplazo) {
             $direccion = preg_replace($patron, $reemplazo, $direccion);
         }
-
         return trim($direccion);
     }
 
     public static function splitAddressNotes(string $direccion): array
     {
-        // Mantiene todo hasta el último número + opcionalmente PB, Local, Piso
         if (preg_match('/^(.+\d+)\s*(?:[-,]?\s*(.*))?$/i', $direccion, $m)) {
             $direccionLimpia = trim($m[1]);
             $nota = isset($m[2]) ? trim($m[2]) : null;
             return [$direccionLimpia, $nota];
         }
-
         return [$direccion, null];
     }
 }
