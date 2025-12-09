@@ -10,48 +10,218 @@ class OcrFarmaciasValidator
 {
     protected $farmaciaMatching;
 
-    // Patrones de nombres válidos (Movidos del Service principal)
+    // Patrones de nombres válidos
     private array $nombresConocidos = [
         // Santa Fe
-        'Adrián Carrizo', 'Banchio', 'Belgrano', 'Bonazzola', 'Bruno', 'Camilatto',
-        'Camusso', 'Costa', 'Gheco', 'Morales', 'Morello', 'Nebiolo', 'Ortiz de Zárate',
-        'Azanza', 'Ignacio Azanza', 'Abregú', 'Gotero', 'Luero', 'Galizzi', 'Marcelo Galizzi',
-        'Martínez', 'Rita Martínez', 'Mario Martínez', 'Liliana Martínez', 'Pardo', 'Sabio',
-        'San Lorenzo', 'Santiváñez', 'Zimmerman', 'Bolognesi', 'Cardoso', 'Esterkil',
-        'Figueroa Sobrero', 'Gómez', 'Imhof', 'Lagger', 'Lagger Zurbriggen', 'Lencinas',
-        'María Selva', 'Santiago', 'Vinderola', 'Coniglio', 'Dentesani', 'Finelli',
-        'Fucksmann', 'Leiva', 'Mercado Central', 'Morante', 'Queglas', 'Las Flores II',
-        'Salvatierra', 'Sileoni', 'Bosch', 'Amherdt', 'Bourdil', 'Escudero', 'Ghersi',
-        'Jullier', 'Lauxmann', 'Theiller', 'Tio', 'Throendly', 'Timofiejuk', 'Wailloud',
-        'Bordignon', 'Acosta', 'Alejandro Senn', 'Bonazzola Denise', 'Chelini', 'Giulioni',
-        'López', 'Germán López', 'Mai', 'Martínez Juan', 'Méndez', 'Naito', 'Pasteur',
-        'Rojas', 'Valetti', 'Barrientos', 'Diagonal', 'Clavé', 'Fanessi', 'Felo',
-        'Judith Acevedo', 'Montes', 'Sen', 'Coltrinari', 'Suppo', 'Ugolini',
-        'Argenti', 'Berron', 'Castro Karina', 'Facino', 'Labath', 'Mónica Wagner',
-        'Rojas Sotelo', 'Pescetti', 'Pescetti Maximiliano', 'Scalzo', 'Vilarrubi',
-        'Armando', 'Arrimada', 'Daniel Lagger', 'Del Barco', 'Burgués Romano',
-        'Lucía Banchio', 'Mazzali', 'Pellegrini', 'Plank', 'Sobrero', 'Strada',
-        'Assinari', 'Capra', 'Costa Samita', 'Caporizzo', 'Donadío', 'Junges',
-        'Long', 'Mergen', 'Ortega', 'Pedro Kornijuk', 'Sartor', 'Valverde',
-        'Verónica Cano', 'Vignolo', 'Bertolif', 'Chemes', 'Col', 'Damiani',
-        'Domet Hurani', 'Gabriel Jauregui', 'Irrazabal', 'Nicolau Manzur', 'Pa',
-        'Peiro', 'Stricker', 'Zapata Morán', 'García', 'Bonazzola Estefanía',
-        'Brambilla', 'Buil', 'Coli', 'Giménez', 'Imvinkelried', 'Mansilla',
-        'Menapace', 'Pescetti P', 'Ranzuglia', 'Wagner Burgués', 'Zeniner',
+        'Adrián Carrizo',
+        'Banchio',
+        'Belgrano',
+        'Bonazzola',
+        'Bruno',
+        'Camilatto',
+        'Camusso',
+        'Costa',
+        'Gheco',
+        'Morales',
+        'Morello',
+        'Nebiolo',
+        'Ortiz de Zárate',
+        'Azanza',
+        'Ignacio Azanza',
+        'Abregú',
+        'Gotero',
+        'Luero',
+        'Galizzi',
+        'Marcelo Galizzi',
+        'Martínez',
+        'Rita Martínez',
+        'Mario Martínez',
+        'Liliana Martínez',
+        'Pardo',
+        'Sabio',
+        'San Lorenzo',
+        'Santiváñez',
+        'Zimmerman',
+        'Bolognesi',
+        'Cardoso',
+        'Esterkil',
+        'Figueroa Sobrero',
+        'Gómez',
+        'Imhof',
+        'Lagger',
+        'Lagger Zurbriggen',
+        'Lencinas',
+        'María Selva',
+        'Santiago',
+        'Vinderola',
+        'Coniglio',
+        'Dentesani',
+        'Finelli',
+        'Fucksmann',
+        'Leiva',
+        'Mercado Central',
+        'Morante',
+        'Queglas',
+        'Las Flores II',
+        'Salvatierra',
+        'Sileoni',
+        'Bosch',
+        'Amherdt',
+        'Bourdil',
+        'Escudero',
+        'Ghersi',
+        'Jullier',
+        'Lauxmann',
+        'Theiller',
+        'Tio',
+        'Throendly',
+        'Timofiejuk',
+        'Wailloud',
+        'Bordignon',
+        'Acosta',
+        'Alejandro Senn',
+        'Bonazzola Denise',
+        'Chelini',
+        'Giulioni',
+        'López',
+        'Germán López',
+        'Mai',
+        'Martínez Juan',
+        'Méndez',
+        'Naito',
+        'Pasteur',
+        'Rojas',
+        'Valetti',
+        'Barrientos',
+        'Diagonal',
+        'Clavé',
+        'Fanessi',
+        'Felo',
+        'Judith Acevedo',
+        'Montes',
+        'Sen',
+        'Coltrinari',
+        'Suppo',
+        'Ugolini',
+        'Argenti',
+        'Berron',
+        'Castro Karina',
+        'Facino',
+        'Labath',
+        'Mónica Wagner',
+        'Rojas Sotelo',
+        'Pescetti',
+        'Pescetti Maximiliano',
+        'Scalzo',
+        'Vilarrubi',
+        'Armando',
+        'Arrimada',
+        'Daniel Lagger',
+        'Del Barco',
+        'Burgués Romano',
+        'Lucía Banchio',
+        'Mazzali',
+        'Pellegrini',
+        'Plank',
+        'Sobrero',
+        'Strada',
+        'Assinari',
+        'Capra',
+        'Costa Samita',
+        'Caporizzo',
+        'Donadío',
+        'Junges',
+        'Long',
+        'Mergen',
+        'Ortega',
+        'Pedro Kornijuk',
+        'Sartor',
+        'Valverde',
+        'Verónica Cano',
+        'Vignolo',
+        'Bertolif',
+        'Chemes',
+        'Col',
+        'Damiani',
+        'Domet Hurani',
+        'Gabriel Jauregui',
+        'Irrazabal',
+        'Nicolau Manzur',
+        'Pa',
+        'Peiro',
+        'Stricker',
+        'Zapata Morán',
+        'García',
+        'Bonazzola Estefanía',
+        'Brambilla',
+        'Buil',
+        'Coli',
+        'Giménez',
+        'Imvinkelried',
+        'Mansilla',
+        'Menapace',
+        'Pescetti P',
+        'Ranzuglia',
+        'Wagner Burgués',
+        'Zeniner',
         // Santo Tomé
-        'Erica Tepp', 'Stessens', 'Villata', 'Sauco', 'Olivero', 'Escobar',
-        'Cirelli', 'Zimmermann', 'Marta Tepp', 'Bonino', 'Pescetti Julieta',
-        'Berta', 'Cruz', 'Curado', 'Mayoráz', 'Macagno', 'Contini', 'Marcolini',
-        'San Roque', 'Quassolo', 'Mariana Gómez', 'Terenzi', 'Firmani', 'Palacin',
+        'Erica Tepp',
+        'Stessens',
+        'Villata',
+        'Sauco',
+        'Olivero',
+        'Escobar',
+        'Cirelli',
+        'Zimmermann',
+        'Marta Tepp',
+        'Bonino',
+        'Pescetti Julieta',
+        'Berta',
+        'Cruz',
+        'Curado',
+        'Mayoráz',
+        'Macagno',
+        'Contini',
+        'Marcolini',
+        'San Roque',
+        'Quassolo',
+        'Mariana Gómez',
+        'Terenzi',
+        'Firmani',
+        'Palacin',
     ];
 
-    // Palabras que NO pueden ser nombres de farmacias (Movidos del Service principal)
+    // Palabras que NO pueden ser nombres de farmacias
     private array $stopwords = [
-        'COLEGIO', 'FARMACEUTICOS', 'PROVINCIA', 'LEY', 'PRIMERA', 'CIRCI',
-        'TURNO', 'URGENCIAS', 'TOXICOLOGICAS', 'HOSPITAL', 'ALASSIA', 'CULLEN',
-        'PRIMER', 'SEGUNDO', 'TERCER', 'CUARTO', 'QUINTO', 'SEXTO', 'SEPTIMO',
-        'OCTAVO', 'NOVENO', 'DECIMO', 'UNDECIMO', 'DUODECIMO', 'INSCRIPCION',
-        'Desde', 'hasta', 'Tel', 'Loc'
+        'COLEGIO',
+        'FARMACEUTICOS',
+        'PROVINCIA',
+        'LEY',
+        'PRIMERA',
+        'CIRCI',
+        'TURNO',
+        'URGENCIAS',
+        'TOXICOLOGICAS',
+        'HOSPITAL',
+        'ALASSIA',
+        'CULLEN',
+        'PRIMER',
+        'SEGUNDO',
+        'TERCER',
+        'CUARTO',
+        'QUINTO',
+        'SEXTO',
+        'SEPTIMO',
+        'OCTAVO',
+        'NOVENO',
+        'DECIMO',
+        'UNDECIMO',
+        'DUODECIMO',
+        'INSCRIPCION',
+        'Desde',
+        'hasta',
+        'Tel',
+        'Loc'
     ];
 
     public function __construct()
@@ -70,7 +240,7 @@ class OcrFarmaciasValidator
 
         foreach ($this->nombresConocidos as $nombreConocido) {
             $nombreConocidoLower = strtolower($nombreConocido);
-            
+
             // Calcular distancia Levenshtein
             $distancia = levenshtein(
                 $nombreConocidoLower,
@@ -88,11 +258,11 @@ class OcrFarmaciasValidator
                     'confianza' => 100 - (($distancia / strlen($nombreConocido)) * 100)
                 ];
             }
-            
+
             // También verificar si el nombre sucio CONTIENE el nombre conocido
             if (strlen($nombreConocidoLower) >= 5 && stripos($nombreLimpio, $nombreConocidoLower) !== false) {
                 $confianza = 95 - (abs(strlen($nombreLimpio) - strlen($nombreConocidoLower)) * 2);
-                
+
                 if ($confianza > 70 && (!$mejorCoincidencia || $confianza > $mejorCoincidencia['confianza'])) {
                     $mejorCoincidencia = [
                         'nombre' => $nombreConocido,
@@ -117,7 +287,7 @@ class OcrFarmaciasValidator
     public function esLineaValidaDeFarmacia(string $line): bool
     {
         $upper = mb_strtoupper($line, 'UTF-8');
-        
+
         // Rechazar stopwords
         foreach ($this->stopwords as $stopword) {
             if (stripos($upper, $stopword) !== false && strlen($line) < 40) {
@@ -196,7 +366,7 @@ class OcrFarmaciasValidator
         }
 
         \Log::info("[Limpieza] '{$nombreOriginal}' → '{$nombreLimpio}' (limpieza manual, sin match)");
-        
+
         return [
             'nombre' => $nombreLimpio,
             'confianza' => 50, // Baja confianza si no coincide con nombres conocidos
@@ -228,13 +398,25 @@ class OcrFarmaciasValidator
     }
 
     /**
-     * Extracción de direcciones más robusta
+     * Extracción de direcciones más robusta (MEJORADO: Soporta calles con números)
      */
     public function extractAddress(string $line): ?string
     {
         $lineaLimpia = preg_replace('/\s+(nn|ac|ee|rrr|eee)\s+/i', ' ', $line);
 
-        // Patrones de calles argentinas comunes
+        // 1. Patrones específicos para calles con números (7 de Marzo, 9 de Julio, etc.)
+        // Esto evita que el sistema corte la dirección antes de tiempo.
+        $patronesNumericos = [
+            '/((?:Av\.?|Avenida|C\.?|Calle)?\s*(?:7\s+de\s+Marzo|9\s+de\s+Julio|1\.?\º?\s?de\s+Mayo|25\s+de\s+Mayo|3\s+de\s+Febrero)\s+\d{1,5})/iu',
+        ];
+
+        foreach ($patronesNumericos as $patron) {
+            if (preg_match($patron, $lineaLimpia, $m)) {
+                return trim($m[1]);
+            }
+        }
+
+        // 2. Patrones genéricos (Tu lógica anterior)
         $patrones = [
             '/((Av\.?|Avenida|Bv\.?|Boulevard|Calle|Diagonal|San|Dr\.?|Dra\.?|Gral\.?|Marcial|Mariano|Stgo\.?|Santiago|Fdo\.?|Fernando|Fray|Gobernador|Angel|Padre|Ejército|Obispo|Hipólito)[^\d\n]*\d{1,5})/iu',
             '/([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+){0,3})\s+(\d{1,5})\b/u',
@@ -245,7 +427,7 @@ class OcrFarmaciasValidator
                 $dir = trim($m[1] ?? $m[0]);
                 $dir = preg_replace('/\.{2,}/', '', $dir);
                 $dir = preg_replace('/\s+/', ' ', $dir);
-                
+
                 // Validar que la dirección tenga sentido
                 if (strlen($dir) > 8 && preg_match('/\d/', $dir)) {
                     return trim($dir);
@@ -257,7 +439,7 @@ class OcrFarmaciasValidator
     }
 
     /**
-     * Extracción de nombres más inteligente
+     * Extracción de nombres con limpieza de basura final y correcciones OCR directas
      */
     public function extractName(string $line, ?string $direccion, ?string $telefono): string
     {
@@ -265,48 +447,50 @@ class OcrFarmaciasValidator
 
         $tmp = $line;
 
-        // Remover teléfono
         if ($telefono) {
-            $pattern = '/' . preg_quote($telefono, '/') . '.*$/';
-            $tmp = preg_replace($pattern, '', $tmp);
+            $tmp = str_replace($telefono, '', $tmp);
         }
 
-        // Remover dirección (MEJORADO: también remover fragmentos incompletos)
         if ($direccion) {
             $tmp = str_ireplace($direccion, '', $tmp);
-            
-            // También remover solo la calle si queda
-            $partesDir = explode(' ', $direccion);
-            if (count($partesDir) > 0) {
-                foreach ($partesDir as $parte) {
-                    if (strlen($parte) > 4) {
-                        $tmp = str_ireplace($parte, '', $tmp);
-                    }
-                }
+
+            // Truco: Si la dirección es "Av. 7 de Marzo...", borrar también variaciones sueltas
+            $calle = preg_replace('/\d+.*$/', '', $direccion); // Solo "Av. 7 de Marzo"
+            if (strlen($calle) > 5) {
+                $tmp = str_ireplace(trim($calle), '', $tmp);
             }
         }
 
-        // Remover palabras comunes de direcciones
-        $palabrasDireccion = ['Avenida', 'Boulevard', 'Calle', 'Diagonal', 'Bulevar', 'Av.', 'Bv.'];
-        foreach ($palabrasDireccion as $palabra) {
-            $tmp = str_ireplace($palabra, '', $tmp);
-        }
+        // Palabras comunes a borrar
+        $borrar = ['Avenida', 'Boulevard', 'Calle', 'Av.', 'Bv.', 'Tel:', 'Tel.', 'Cel:'];
+        $tmp = str_ireplace($borrar, '', $tmp);
 
-        // Remover números sueltos (probablemente parte de dirección/teléfono)
-        $tmp = preg_replace('/\b\d{3,}\b/', '', $tmp);
-
-        // Limpiar basura de OCR
+        // Limpiar basura típica de OCR
         $tmp = preg_replace('/[@\.\-]{2,}/', ' ', $tmp);
-        $tmp = preg_replace('/[=£\*E27]+/', '', $tmp);
-        $tmp = preg_replace('/\.{2,}/', '', $tmp);
+        $tmp = preg_replace('/[=£\*E27%]+/', '', $tmp);
 
-        // Mantener solo caracteres válidos
+        // --- [NUEVO] BORRADO AGRESIVO DE NÚMEROS SUELTOS ---
+        // Elimina números aislados (ej: "3", "44", "8") en cualquier parte del nombre
+        $tmp = preg_replace('/\b\d+\b/', '', $tmp);
+
+        // Solo caracteres válidos
         $tmp = preg_replace('/[^\w\sáéíóúñÁÉÍÓÚÑ\.\-]/u', '', $tmp);
 
         $final = trim($tmp);
+
+        // --- [CORRECCIONES MANUALES DIRECTAS] ---
+        // Aplicamos esto aquí para asegurar que entren limpias al sistema
+        if (stripos($final, 'scobar') !== false) {
+            $final = str_ireplace('scobar', 'Escobar', $final);
+        }
+        if (stripos($final, 'SALCO') !== false) {
+            $final = str_ireplace('SALCO', 'Sauco', $final);
+        }
+        // ----------------------------------------
+
         Log::info("[OCR] Nombre final extraído: '{$final}'");
 
-        return $final;
+        return trim($final);
     }
 
     /**

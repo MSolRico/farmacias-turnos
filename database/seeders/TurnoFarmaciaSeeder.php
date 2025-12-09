@@ -82,41 +82,42 @@ class TurnoFarmaciaSeeder extends Seeder
             ],
         ];
 
+        // --- SANTO TOMÉ (Corregido según PDF Diciembre) ---
         $santoTomeGroups = [
             'ST_TURNO_1' => [
-                'dates' => ['2025-12-08', '2025-12-17', '2025-12-26'],
+                'dates' => ['2025-12-05', '2025-12-14', '2025-12-23'],
                 'pharmacies' => ['Erica Tepp', 'Stessens', 'Villata']
             ],
             'ST_TURNO_2' => [
-                'dates' => ['2025-12-09', '2025-12-18', '2025-12-27'],
+                'dates' => ['2025-12-06', '2025-12-15', '2025-12-24'],
                 'pharmacies' => ['Sauco', 'Olivero', 'Escobar']
             ],
             'ST_TURNO_3' => [
-                'dates' => ['2025-12-10', '2025-12-19', '2025-12-28'],
-                'pharmacies' => ['Cirelli', 'Gómez Sto Tomé', 'Zimmermann']
+                'dates' => ['2025-12-07', '2025-12-16', '2025-12-25'],
+                'pharmacies' => ['Cirelli', 'Gómez', 'Zimmermann'] // Ojo: en FarmaciaSeeder es 'Gómez', no 'Gómez Sto Tomé'
             ],
             'ST_TURNO_4' => [
-                'dates' => ['2025-12-11', '2025-12-20', '2025-12-29'],
-                'pharmacies' => ['Marta Tepp', 'Bonino', 'Martínez Sto Tomé']
+                'dates' => ['2025-12-08', '2025-12-17', '2025-12-26'],
+                'pharmacies' => ['Marta Tepp', 'Bonino', 'Martínez'] // Ojo: en FarmaciaSeeder es 'Martínez', no 'Martínez Sto Tomé'
             ],
             'ST_TURNO_5' => [
-                'dates' => ['2025-12-12', '2025-12-21', '2025-12-30'],
+                'dates' => ['2025-11-30', '2025-12-09', '2025-12-18', '2025-12-27'],
                 'pharmacies' => ['Pescetti Julieta', 'Berta', 'Cruz', 'Curado']
             ],
             'ST_TURNO_6' => [
-                'dates' => ['2025-12-01', '2025-12-13', '2025-12-22', '2025-12-31'],
+                'dates' => ['2025-12-01', '2025-12-10', '2025-12-19', '2025-12-28'],
                 'pharmacies' => ['Mayoráz', 'Macagno', 'Tosello']
             ],
             'ST_TURNO_7' => [
-                'dates' => ['2025-12-02', '2025-12-14', '2025-12-23'],
+                'dates' => ['2025-12-02', '2025-12-11', '2025-12-20', '2025-12-29'],
                 'pharmacies' => ['Contini', 'Marcolini', 'San Roque']
             ],
             'ST_TURNO_8' => [
-                'dates' => ['2025-12-03', '2025-12-15', '2025-12-24'],
+                'dates' => ['2025-12-03', '2025-12-12', '2025-12-21', '2025-12-30'],
                 'pharmacies' => ['Quassolo', 'Mariana Gómez', 'Rivero', 'Terenzi']
             ],
             'ST_TURNO_9' => [
-                'dates' => ['2025-12-04', '2025-12-16', '2025-12-25'],
+                'dates' => ['2025-12-04', '2025-12-13', '2025-12-22', '2025-12-31'],
                 'pharmacies' => ['Adrián Carrizo', 'Firmani', 'Palacin']
             ],
         ];

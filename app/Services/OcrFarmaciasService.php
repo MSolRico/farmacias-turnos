@@ -44,7 +44,7 @@ class OcrFarmaciasService
         foreach ($imagePaths as $colPath) {
             try {
                 $ocr = (new \thiagoalessio\TesseractOCR\TesseractOCR($colPath))
-                    ->executable('C:\Program Files\Tesseract-OCR\tesseract.exe') // Asegúrate que esta ruta sea correcta en tu .env o config
+                    ->executable('C:\Program Files\Tesseract-OCR\tesseract.exe')
                     ->lang('spa')
                     ->psm(6)
                     ->oem(3);
@@ -57,16 +57,15 @@ class OcrFarmaciasService
 
         // 2) Limpieza y Procesamiento
         $textoBruto = $this->limpiezaLocalOCR($textoBruto);
-        $textoLimpio = $textoBruto;
 
-        // (Omitimos lógica de Gemini para simplificar, se mantiene la original si la tienes)
+        // Guardar para debug si hace falta
+        \Illuminate\Support\Facades\Storage::put('logs/ocr_last_clean.txt', $textoBruto);
 
-        return $this->procesarTexto($textoLimpio);
+        return $this->procesarTexto($textoBruto);
     }
 
     private function limpiezaLocalOCR(string $texto): string
     {
-        // ... (Misma lógica de limpieza que ya tenías) ...
         $reemplazos = [
             '/(\d{3,4})[\s]*[=£\*E27]{1,2}[\s]*(\d{3,5})/' => '$1-$2',
             '/\.{3,}/' => ' ',
@@ -108,23 +107,26 @@ class OcrFarmaciasService
         $currentCity = null;
         $currentTurnDates = null;
         $items = [];
+        $lastActionWasDate = false; // Bandera para saber si estamos en un bloque de fechas
 
         foreach ($lines as $rawLine) {
             $line = trim($rawLine);
-            if ($line === '' || strlen($line) < 5) continue; // Bajé el límite a 5 para detectar fechas cortas
+            if ($line === '' || strlen($line) < 5) continue;
             $upper = mb_strtoupper($line, 'UTF-8');
 
-            // --- DETECCIÓN DE CIUDAD Y RESETEO DE VARIABLES (CRÍTICO) ---
+            // --- DETECCIÓN DE CIUDAD ---
             if (preg_match('/\bSANTA\s*FE\b/u', $upper)) {
                 $currentCity = 'Santa Fe';
-                $currentTurnDates = null; // <--- CORRECCIÓN: Reseteamos fechas para evitar sangrado
-                \Log::info("Ciudad detectada: Santa Fe (Fechas reiniciadas)");
+                $currentTurnDates = null;
+                $lastActionWasDate = false;
+                \Log::info("Ciudad detectada: Santa Fe");
                 continue;
             }
             if (preg_match('/\bSANTO\s*TOM(É|E)?\b/iu', $upper)) {
                 $currentCity = 'Santo Tomé';
-                $currentTurnDates = null; // <--- CORRECCIÓN: Reseteamos fechas para evitar sangrado
-                \Log::info("Ciudad detectada: Santo Tomé (Fechas reiniciadas)");
+                $currentTurnDates = null;
+                $lastActionWasDate = false;
+                \Log::info("Ciudad detectada: Santo Tomé");
                 continue;
             }
 
@@ -133,13 +135,13 @@ class OcrFarmaciasService
                 continue;
             }
 
-            // --- DETECCIÓN DE FECHAS MEJORADA ---
+            // --- DETECCIÓN DE FECHAS ---
             $fechasCorregidas = OcrCleaner::extractAndFixDates($line);
 
             if (count($fechasCorregidas) > 0) {
                 $nuevasFechas = [];
 
-                // CASO A: Rango de fechas (Típico Santa Fe: "01/12 al 02/12")
+                // CASO A: Rango
                 if (count($fechasCorregidas) >= 2 && count($fechasCorregidas) % 2 === 0) {
                     for ($i = 0; $i < count($fechasCorregidas); $i += 2) {
                         [$d1, $m1] = array_map('intval', explode('/', $fechasCorregidas[$i]));
@@ -152,8 +154,7 @@ class OcrFarmaciasService
                         ];
                     }
                 }
-                // CASO B: Fecha única (Típico Santo Tomé o línea mixta: "08/12: Farmacia X")
-                // Asumimos turno de 24hs (8am a 8am del día siguiente)
+                // CASO B: Fecha única
                 elseif (count($fechasCorregidas) === 1) {
                     [$d1, $m1] = array_map('intval', explode('/', $fechasCorregidas[0]));
                     $year = $this->validator->inferYear($d1, $m1, $d1, $m1);
@@ -165,11 +166,20 @@ class OcrFarmaciasService
                 }
 
                 if (!empty($nuevasFechas)) {
-                    $currentTurnDates = $nuevasFechas;
-                    \Log::info("Fechas actualizadas: " . json_encode($fechasCorregidas));
+                    // LÓGICA DE ACUMULACIÓN
+                    // Si la línea anterior también era fecha, fusionamos. Si no, reseteamos.
+                    if ($lastActionWasDate && is_array($currentTurnDates)) {
+                        $currentTurnDates = array_merge($currentTurnDates, $nuevasFechas);
+                        \Log::info("Fechas acumuladas: " . count($currentTurnDates) . " rangos.");
+                    } else {
+                        $currentTurnDates = $nuevasFechas;
+                        \Log::info("Nuevas fechas detectadas (inicio de bloque).");
+                    }
 
-                    // IMPORTANTE: Si la línea TIENE fechas PERO TAMBIÉN parece ser una farmacia,
-                    // NO hacemos 'continue', dejamos que fluya para procesar la farmacia.
+                    $lastActionWasDate = true;
+
+                    // Si la línea NO tiene datos de farmacia, pasamos a la siguiente.
+                    // Si TIENE (línea mixta), seguimos para procesar la farmacia con las fechas actuales.
                     if (!$this->validator->esLineaValidaDeFarmacia($line)) {
                         continue;
                     }
@@ -182,9 +192,11 @@ class OcrFarmaciasService
             }
 
             // PROCESAR FARMACIA
-            // Solo procesamos si tenemos fechas activas para asignar
             if ($currentTurnDates) {
-                // Lógica de múltiples teléfonos en una línea
+                // Si llegamos aquí, es porque estamos procesando una farmacia.
+                // Ya terminamos el bloque de fechas consecutivas.
+
+                // Lógica de múltiples teléfonos
                 $numTelefonos = preg_match_all('/\d{3,4}[\s\-=£\*E27]{0,3}\d{3,5}/', $line);
                 if ($numTelefonos > 1) {
                     $partes = preg_split('/\s+(?=[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+\s+[A-Za-záéíóúñ])/', $line);
@@ -193,10 +205,12 @@ class OcrFarmaciasService
                     foreach ($partes as $parte) {
                         if (strlen(trim($parte)) > 10) {
                             $this->procesarLineaFarmacia($parte, $currentCity, $ciudadDefault, $currentTurnDates, $items);
+                            $lastActionWasDate = false; // Rompemos la racha de fechas
                         }
                     }
                 } else {
                     $this->procesarLineaFarmacia($line, $currentCity, $ciudadDefault, $currentTurnDates, $items);
+                    $lastActionWasDate = false; // Rompemos la racha de fechas
                 }
             }
         }
@@ -223,14 +237,11 @@ class OcrFarmaciasService
         $nombre = $matchResult['nombre'];
         $confianza = $matchResult['confianza'];
 
-        // Filtros de calidad
         if ($confianza < 50 && preg_match('/[^a-zA-ZáéíóúñÁÉÍÓÚÑ\s\-]/', $nombre)) return;
 
         if ($telefono) $telefono = $this->validator->validarTelefono($telefono);
 
-        // Validación mínima: debe tener dirección O teléfono O ser un match muy confiable
         if (empty($telefono) && (empty($direccion) || strlen($direccion) < 5)) {
-            // Último intento: Si el nombre es MUY conocido en la BD, lo aceptamos igual
             $matchBD = $this->farmaciaMatching->buscarCoincidencia($nombre, $currentCity ?? $ciudadDefault);
             if (!$matchBD || $matchBD['confianza'] < 90) {
                 return;
@@ -239,7 +250,6 @@ class OcrFarmaciasService
 
         $ciudad = $currentCity ?? $ciudadDefault;
 
-        // Normalizar dirección
         $notas = null;
         if ($direccion) {
             $direccion = OcrCleaner::normalizeAddress($direccion);
@@ -247,7 +257,6 @@ class OcrFarmaciasService
             [$direccion, $notas] = OcrCleaner::splitAddressNotes($direccion);
         }
 
-        // Buscar coincidencia en BD
         $match = $this->farmaciaMatching->buscarCoincidencia($nombre, $ciudad);
         if ($match && $match['confianza'] >= 80) {
             $nombre = $match['nombre_correcto'];

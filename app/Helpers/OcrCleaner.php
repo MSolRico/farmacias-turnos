@@ -99,6 +99,14 @@ class OcrCleaner
         $nombre = preg_replace('/[^\p{L}\s\.]/u', ' ', $nombre);
         $nombre = preg_replace('/\s+(P\.?B\.?|sani)\s*$/i', '', $nombre);
         $nombre = preg_replace('/\s+/', ' ', $nombre);
+
+        // --- [CORRECCIÓN CRÍTICA] ---
+        // Forzamos "SALCO" a "Sauco" para que el validador la reconozca.
+        if (stripos($nombre, 'SALCO') !== false) {
+            $nombre = str_ireplace('SALCO', 'Sauco', $nombre);
+        }
+        // -----------------------------
+
         return trim($nombre);
     }
 
@@ -195,6 +203,9 @@ class OcrCleaner
         'N RÍOS'                    => 'Entre Ríos',
         'Dro Senn'                  => 'Alejandro Senn',
         'dro Senn'                  => 'Alejandro Senn',
+        // --- Correcciones Santo Tomé ---
+        'H d'                       => 'Hernandarias',
+        'H. d'                      => 'Hernandarias',
     ];
 
     public static function fixStreetNames(string $direccion): string

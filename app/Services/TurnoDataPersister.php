@@ -26,26 +26,22 @@ class TurnoDataPersister
             foreach ($items as $it) {
                 // validar nombre minimo
                 if (empty($it['nombre']) || empty($it['turn_dates'])) continue;
-                
-                // Rechazar farmacias con confianza muy baja
+
                 if (isset($it['confianza']) && $it['confianza'] < 45) {
                     \Log::warning("❌ Farmacia rechazada por baja confianza: {$it['nombre']} ({$it['confianza']}%)");
                     $stats['rechazadas']++;
                     continue;
                 }
-                
+
                 [$inicio, $fin] = $it['turn_dates'];
 
-                // Crear o recuperar ciudad
                 $ciudad = Ciudad::firstOrCreate(['nombre_ciudad' => $it['ciudad']]);
 
-                // Buscar farmacia por nombre + ciudad (evitar duplicados)
                 $farmacia = Farmacia::where('nombre', $it['nombre'])
                     ->where('id_ciudad', $ciudad->id_ciudad)
                     ->first();
 
                 if (!$farmacia) {
-                    // si no existe, crear
                     $farmacia = Farmacia::create([
                         'nombre' => $it['nombre'],
                         'direccion' => $it['direccion'],
@@ -54,7 +50,6 @@ class TurnoDataPersister
                     ]);
                     $stats['farmacias']++;
                 } else {
-                    // actualizar datos faltantes
                     $changed = false;
                     if (empty($farmacia->direccion) && !empty($it['direccion'])) {
                         $farmacia->direccion = $it['direccion'];
@@ -70,18 +65,21 @@ class TurnoDataPersister
                     }
                 }
 
-                // Geocoding solo si hace falta (respeta rate-limit)
+                // --- GEOCODING DESACTIVADO TEMPORALMENTE ---
+                // Esto es lo que causaba la demora de 5+ minutos.
+                // Lo comentamos para probar la carga de fechas y nombres rápido.
+                /*
                 if ((empty($farmacia->lat) || empty($farmacia->lng)) && !empty($farmacia->direccion)) {
                     [$lat, $lng] = $this->geo->buscarVariantes($farmacia->direccion, $ciudad->nombre_ciudad);
                     if ($lat && $lng) {
                         $farmacia->lat = $lat;
                         $farmacia->lng = $lng;
                         $farmacia->save();
-                        sleep(1);
                     }
                 }
+                */
+                // -------------------------------------------
 
-                // Crear turno (si no existe)
                 $turno = Turno::firstOrNew(
                     [
                         'fecha_hora_inicio' => $inicio->toDateTimeString(),
@@ -96,12 +94,9 @@ class TurnoDataPersister
                 if (!$turno->exists) {
                     $turno->save();
                     \Log::info("✅ Turno CREADO: {$inicio->format('d/m/Y')} - {$fin->format('d/m/Y')}");
-                } else {
-                    // Usamos DEBUG. Esto evita que los turnos ya existentes (como en la nota de excepción) inflen el log.
-                    \Log::debug("🔎 Turno ENCONTRADO (no creado): {$inicio->format('d/m/Y')} - {$fin->format('d/m/Y')}");
                 }
 
-                $stats['turnos']++; // Este contador se mantiene porque cuenta la ASIGNACIÓN de la farmacia al turno.
+                $stats['turnos']++;
 
                 $pivot = DB::table('farmacias_turnos')
                     ->where('id_farmacia', $farmacia->id_farmacia)
@@ -109,7 +104,6 @@ class TurnoDataPersister
                     ->first();
 
                 if (!$pivot) {
-                    // No existe: insertar todo
                     DB::table('farmacias_turnos')->insert([
                         'id_farmacia' => $farmacia->id_farmacia,
                         'id_turno' => $turno->id_turno,

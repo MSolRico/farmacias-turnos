@@ -11,12 +11,12 @@ class TurnoController extends Controller
 {
     public function index()
     {
-        Carbon::setLocale('es'); 
+        Carbon::setLocale('es');
 
         $hoy = Carbon::today();
-        $mes = ucfirst($hoy->translatedFormat('F')); 
+        $mes = ucfirst($hoy->translatedFormat('F'));
         $anio = $hoy->year;
-        
+
         $ciudad_santa_fe = Ciudad::where('nombre_ciudad', 'Santa Fe')->first();
 
         $farmacias = collect();
@@ -49,8 +49,8 @@ class TurnoController extends Controller
     public function buscar(Request $request)
     {
         // [CORRECCIÓN] Se añade la configuración regional aquí para que el h2 se traduzca.
-        Carbon::setLocale('es'); 
-        
+        Carbon::setLocale('es');
+
         $request->validate([
             'fecha' => 'required|date',
             'ciudad' => 'required|integer',
@@ -62,8 +62,8 @@ class TurnoController extends Controller
         $farmacias = DB::table('farmacias_turnos')
             ->join('turnos', 'farmacias_turnos.id_turno', '=', 'turnos.id_turno')
             ->join('farmacias', 'farmacias_turnos.id_farmacia', '=', 'farmacias.id_farmacia')
-            ->whereDate('turnos.fecha_hora_inicio', '<=', $fecha)
-            ->whereDate('turnos.fecha_hora_fin', '>=', $fecha)
+            // Solo traer turnos que COMIENZAN en la fecha seleccionada
+            ->whereDate('turnos.fecha_hora_inicio', '=', $fecha)
             ->where('turnos.id_ciudad', '=', $ciudad_id)
             ->select(
                 'farmacias.id_farmacia',
@@ -93,7 +93,7 @@ class TurnoController extends Controller
         $request->validate([
             'latitud' => 'required|numeric',
             'longitud' => 'required|numeric',
-            'ciudad_id' => 'required|integer', 
+            'ciudad_id' => 'required|integer',
         ]);
 
         $userLat = $request->input('latitud');
@@ -108,12 +108,12 @@ class TurnoController extends Controller
         $farmacias = DB::table('farmacias_turnos')
             ->join('turnos', 'farmacias_turnos.id_turno', '=', 'turnos.id_turno')
             ->join('farmacias', 'farmacias_turnos.id_farmacia', '=', 'farmacias.id_farmacia')
-            
+
             // FILTROS DE TURNO (replicando la lógica de index/buscar)
             ->whereDate('turnos.fecha_hora_inicio', '<=', $hoy)
             ->whereDate('turnos.fecha_hora_fin', '>=', $hoy)
-            ->where('turnos.id_ciudad', '=', $ciudadId) 
-            
+            ->where('turnos.id_ciudad', '=', $ciudadId)
+
             // SELECCIÓN Y CÁLCULO DE DISTANCIA (USANDO farmacias.lat y farmacias.lng)
             ->selectRaw("
                 farmacias.id_farmacia,
@@ -127,11 +127,11 @@ class TurnoController extends Controller
                     cos(radians(?)) * cos(radians(farmacias.lat)) * cos(radians(farmacias.lng) - radians(?)) 
                     + sin(radians(?)) * sin(radians(farmacias.lat))
                 )) AS distancia_km", [$userLat, $userLon, $userLat])
-            
+
             ->distinct()
-            
+
             // 3. Ordenar por la distancia calculada (el más cercano primero)
-            ->orderBy('distancia_km', 'asc') 
+            ->orderBy('distancia_km', 'asc')
             ->get();
 
         // 4. Devolver la lista ordenada como JSON
