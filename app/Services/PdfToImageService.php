@@ -2,22 +2,31 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Log;
+
 class PdfToImageService
 {
     protected string $popplerPath;
 
+    // Fallback si la detección automática de columnas falla (imagen rara,
+    // afiche todo blanco, etc.) — mismos valores que antes, calculados
+    // sobre este ancho de referencia.
+    private const FALLBACK_REF_WIDTH = 4796;
+    private const FALLBACK_CUTS_REF = [1228, 2286, 3454];
+
     public function __construct()
     {
-        // Ruta a pdftoppm.exe de Poppler
-        $this->popplerPath = 'C:\poppler\Library\bin\pdftoppm.exe';
+        $this->popplerPath = env('POPPLER_PDFTOPPM_PATH', 'C:\poppler\Library\bin\pdftoppm.exe');
     }
 
-    /**
-     * Convierte el PDF a PNG y genera 4 recortes (3 Santa Fe + 1 Santo Tomé)
-     */
     public function convertToImage(string $pdfPath): ?array
     {
         if (!file_exists($pdfPath)) {
+            return null;
+        }
+
+        if (!file_exists($this->popplerPath)) {
+            Log::error("No se encontró pdftoppm en la ruta configurada: {$this->popplerPath}. Revisá POPPLER_PDFTOPPM_PATH en .env");
             return null;
         }
 
@@ -37,146 +46,88 @@ class PdfToImageService
         exec($cmd, $output, $exit);
 
         if ($exit !== 0) {
-            \Log::error("Error convirtiendo PDF a imagen: exit code {$exit}");
+            Log::error("Error convirtiendo PDF a imagen: exit code {$exit}");
             return null;
         }
 
         $fullImagePath = $outputBase . '.png';
 
         if (!file_exists($fullImagePath)) {
-            \Log::error("Archivo PNG no generado: {$fullImagePath}");
+            Log::error("Archivo PNG no generado: {$fullImagePath}");
             return null;
         }
 
-        // Preprocesar imagen para mejorar OCR
-        $this->preprocessImage($fullImagePath);
-
-        // Crear 4 columnas
         return $this->splitIntoColumns($fullImagePath);
     }
 
     /**
-     * Preprocesa la imagen para mejorar la precisión del OCR
-     */
-    private function preprocessImage(string $imagePath): void
-    {
-        if (!extension_loaded('gd')) {
-            \Log::warning("GD no está disponible, saltando preprocesamiento de imagen");
-            return;
-        }
-
-        try {
-            $image = @imagecreatefrompng($imagePath);
-            if (!$image) {
-                \Log::warning("No se pudo cargar imagen para preprocesar: {$imagePath}");
-                return;
-            }
-
-            // 1. Convertir a escala de grises
-            imagefilter($image, IMG_FILTER_GRAYSCALE);
-
-            // 2. Aumentar contraste (ayuda a distinguir texto del fondo)
-            imagefilter($image, IMG_FILTER_CONTRAST, -40);
-
-            // 3. Aumentar brillo ligeramente
-            imagefilter($image, IMG_FILTER_BRIGHTNESS, 10);
-
-            // 4. Aplicar nitidez para texto más definido
-            $matrix = [
-                [-1, -1, -1],
-                [-1, 16, -1],
-                [-1, -1, -1],
-            ];
-            imageconvolution($image, $matrix, 8, 0);
-
-            // Guardar imagen mejorada
-            imagepng($image, $imagePath, 0); // 0 = sin compresión para máxima calidad
-            imagedestroy($image);
-        } catch (\Throwable $e) {
-            \Log::warning("Error preprocesando imagen: " . $e->getMessage());
-        }
-    }
-
-    /**
-     * Divide la imagen del afiche en 4 columnas:
-     * 3 columnas = Santa Fe
-     * 1 columna = Santo Tomé
+     * Divide la imagen del afiche en columnas detectando automáticamente
+     * los espacios en blanco entre ellas, en vez de asumir posiciones de
+     * píxel fijas. Así, si el Colegio de Farmacéuticos cambia el diseño
+     * del afiche (más o menos columnas, otro ancho de margen), esto se
+     * adapta solo.
+     *
+     * Si la detección automática no encuentra una cantidad razonable de
+     * columnas (imagen atípica, todo blanco, etc.), cae al recorte fijo
+     * anterior como red de seguridad.
      */
     private function splitIntoColumns(string $imagePath): ?array
     {
         if (!extension_loaded('gd')) {
-            \Log::warning("GD no está disponible, no se pueden cortar columnas");
-            return [$imagePath]; // fallback
+            Log::warning('GD no está disponible, no se pueden cortar columnas');
+            return [$imagePath];
         }
 
         $img = @imagecreatefrompng($imagePath);
         if (!$img) {
-            \Log::error("No se pudo abrir imagen para cortar: {$imagePath}");
+            Log::error("No se pudo abrir imagen para cortar: {$imagePath}");
             return null;
         }
 
         $w = imagesx($img);
         $h = imagesy($img);
 
-        // Pixeles de referencia que vos proporcionaste (para ancho = 4796)
-        $refWidth = 4796;
-        $cutsRef = [1228, 2286, 3454]; // cortes verticales (x positions) entre columnas
+        $cuts = $this->detectColumnCuts($img, $w, $h);
 
-        // Si la imagen no tiene exactamente el ancho de referencia, escalar cortes proporcionalmente
-        if ($w !== $refWidth && $refWidth > 0) {
-            $scale = $w / $refWidth;
-            $cuts = array_map(fn($x) => intval(round($x * $scale)), $cutsRef);
+        if (empty($cuts)) {
+            Log::warning('Detección automática de columnas no encontró cortes válidos, usando recorte fijo de respaldo');
+            $cuts = $this->fallbackCuts($w);
         } else {
-            $cuts = $cutsRef;
+            Log::info('Cortes de columna detectados automáticamente: ' . implode(', ', $cuts));
         }
 
-        // Calcular anchos de cada columna a partir de cortes
-        $x0 = 0;
-        $x1 = $cuts[0];
-        $x2 = $cuts[1];
-        $x3 = $cuts[2];
-        $x4 = $w; // final
-
-        $cols = [
-            ['x' => $x0, 'w' => max(0, $x1 - $x0), 'suffix' => '_sf0'],
-            ['x' => $x1, 'w' => max(0, $x2 - $x1), 'suffix' => '_sf1'],
-            ['x' => $x2, 'w' => max(0, $x3 - $x2), 'suffix' => '_sf2'],
-            ['x' => $x3, 'w' => max(0, $x4 - $x3), 'suffix' => '_st'],
-        ];
-
+        $bounds = array_merge([0], $cuts, [$w]);
         $paths = [];
 
-        foreach ($cols as $i => $c) {
-            // Si por alguna razón el ancho calculado es 0, saltar
-            if ($c['w'] <= 0) {
-                \Log::warning("Ancho de columna {$i} inválido ({$c['w']}px), se omite");
+        for ($i = 0; $i < count($bounds) - 1; $i++) {
+            $x = $bounds[$i];
+            $colWidth = $bounds[$i + 1] - $x;
+
+            if ($colWidth <= 0) {
                 continue;
             }
 
-            $new = imagecreatetruecolor($c['w'], $h);
-
-            // Mantener transparencia/alpha si es necesario
+            $new = imagecreatetruecolor($colWidth, $h);
             imagealphablending($new, false);
             imagesavealpha($new, true);
             $transparent = imagecolorallocatealpha($new, 255, 255, 255, 127);
-            imagefilledrectangle($new, 0, 0, $c['w'], $h, $transparent);
+            imagefilledrectangle($new, 0, 0, $colWidth, $h, $transparent);
 
-            imagecopy($new, $img, 0, 0, $c['x'], 0, $c['w'], $h);
+            imagecopy($new, $img, 0, 0, $x, 0, $colWidth, $h);
 
-            $colPath = preg_replace('/\.png$/i', $c['suffix'] . '.png', $imagePath);
-            // Evitar sobrescribir si existe: agregar índice
+            $colPath = preg_replace('/\.png$/i', "_col{$i}.png", $imagePath);
             $idx = 0;
             $finalPath = $colPath;
             while (file_exists($finalPath)) {
                 $idx++;
-                $finalPath = preg_replace('/\.png$/i', $c['suffix'] . "_{$idx}.png", $imagePath);
+                $finalPath = preg_replace('/\.png$/i', "_col{$i}_{$idx}.png", $imagePath);
             }
 
             imagepng($new, $finalPath, 0);
             imagedestroy($new);
 
             $paths[] = $finalPath;
-            \Log::info("Columna creada: {$finalPath} (x={$c['x']}, w={$c['w']}, h={$h})");
+            Log::info("Columna creada: {$finalPath} (x={$x}, w={$colWidth}, h={$h})");
         }
 
         imagedestroy($img);
@@ -185,8 +136,111 @@ class PdfToImageService
     }
 
     /**
-     * Elimina archivos viejos en /temp
+     * Escanea la imagen en una grilla (muestreada, no píxel por píxel, por
+     * performance) y busca franjas verticales que son casi enteramente
+     * blancas de arriba a abajo: esos son los espacios entre columnas de
+     * texto. Devuelve el punto medio de cada franja como corte.
+     *
+     * @return int[] posiciones X de corte, ordenadas de izquierda a derecha
      */
+    private function detectColumnCuts($img, int $w, int $h): array
+    {
+        $strideX = max(1, intdiv($w, 1400));  // ~1400 columnas muestreadas
+        $strideY = max(1, intdiv($h, 500));   // ~500 filas muestreadas por columna
+
+        $whiteLuminanceThreshold = 245;  // 0-255, qué tan claro debe ser un píxel para contar como "fondo"
+        $minWhiteFraction = 0.985;       // fracción de píxeles muestreados que deben ser "blancos" para que la columna sea un gap
+        $minGapWidthPx = max(12, (int) round($w * 0.004)); // ancho mínimo de gap para no confundir con espacio entre letras
+
+        $isGapAtX = [];
+
+        for ($x = 0; $x < $w; $x += $strideX) {
+            $white = 0;
+            $total = 0;
+
+            for ($y = 0; $y < $h; $y += $strideY) {
+                $rgb = imagecolorat($img, $x, $y);
+                $r = ($rgb >> 16) & 0xFF;
+                $g = ($rgb >> 8) & 0xFF;
+                $b = $rgb & 0xFF;
+                $luminance = 0.299 * $r + 0.587 * $g + 0.114 * $b;
+
+                if ($luminance >= $whiteLuminanceThreshold) {
+                    $white++;
+                }
+                $total++;
+            }
+
+            $isGapAtX[$x] = $total > 0 && ($white / $total) >= $minWhiteFraction;
+        }
+
+        $sampledXs = array_keys($isGapAtX);
+
+        // Recortar bordes: no nos interesan los márgenes blancos del
+        // principio/final de la hoja, solo los gaps ENTRE contenido.
+        $firstContentX = null;
+        $lastContentX = null;
+        foreach ($sampledXs as $x) {
+            if (!$isGapAtX[$x]) {
+                if ($firstContentX === null) {
+                    $firstContentX = $x;
+                }
+                $lastContentX = $x;
+            }
+        }
+
+        if ($firstContentX === null) {
+            // La imagen entera dio "blanca" según el umbral: algo anda mal,
+            // que el caller decida usar el fallback.
+            return [];
+        }
+
+        $cuts = [];
+        $inGap = false;
+        $gapStart = null;
+
+        foreach ($sampledXs as $x) {
+            if ($x <= $firstContentX || $x >= $lastContentX) {
+                continue;
+            }
+
+            if ($isGapAtX[$x]) {
+                if (!$inGap) {
+                    $inGap = true;
+                    $gapStart = $x;
+                }
+            } elseif ($inGap) {
+                $gapEnd = $x - $strideX;
+                if (($gapEnd - $gapStart) >= $minGapWidthPx) {
+                    $cuts[] = intdiv($gapStart + $gapEnd, 2);
+                }
+                $inGap = false;
+            }
+        }
+
+        // Sanity check: un afiche de este tipo va a tener entre 1 y 6
+        // columnas razonablemente. Si la detección da un número
+        // disparatado de cortes, algo se leyó mal (ruido, textura de
+        // fondo, etc.) y es más seguro caer al recorte fijo.
+        $columnCount = count($cuts) + 1;
+        if ($columnCount < 2 || $columnCount > 6) {
+            Log::warning("Detección automática dio {$columnCount} columnas (fuera de rango esperado 2-6), se descarta");
+            return [];
+        }
+
+        return $cuts;
+    }
+
+    private function fallbackCuts(int $w): array
+    {
+        if ($w === self::FALLBACK_REF_WIDTH) {
+            return self::FALLBACK_CUTS_REF;
+        }
+
+        $scale = $w / self::FALLBACK_REF_WIDTH;
+        return array_map(fn($x) => (int) round($x * $scale), self::FALLBACK_CUTS_REF);
+    }
+
     public function cleanOldTempFiles(): int
     {
         $tempDir = storage_path('app/temp');
