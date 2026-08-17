@@ -26,7 +26,7 @@ class FarmaciaMatchingService
 
     public function __construct()
     {
-        $this->cargarFarmacias();
+        // Las farmacias se cargan de forma diferida en buscarCoincidencia().
     }
 
     private function cargarFarmacias(): void
@@ -101,6 +101,15 @@ class FarmaciaMatchingService
     {
         if (!$nombreOCR || !$ciudad) {
             return null;
+        }
+
+        /*
+         * Carga diferida:
+         * Las farmacias se consultan solamente cuando realmente
+         * necesitamos realizar un matching.
+         */
+        if (empty($this->farmaciasCache)) {
+            $this->cargarFarmacias();
         }
 
         $ciudadKey = $this->limpiarNombre($ciudad);
@@ -195,6 +204,6 @@ class FarmaciaMatchingService
     public function limpiarCache(): void
     {
         Cache::forget('farmacias_conocidas');
-        $this->cargarFarmacias();
+        $this->farmaciasCache = [];
     }
 }

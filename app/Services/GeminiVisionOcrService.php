@@ -87,6 +87,8 @@ class GeminiVisionOcrService
         $mimeType = 'image/png';
         $prompt = $this->buildPrompt();
 
+        Log::info('[GeminiVision] Versión del servicio: 2026-08-16c (dedupe robusto a espacios/formato + fechas normalizadas)');
+
         $modelos = $this->modelosAProbar();
 
         foreach ($modelos as $modelo) {
@@ -296,7 +298,7 @@ class GeminiVisionOcrService
         $turnosPorFecha = [];
 
         foreach ($parsed['turnos'] as $turno) {
-            $claveFecha = trim((string) ($turno['fecha_inicio'] ?? '')) . '|' . trim((string) ($turno['fecha_fin'] ?? ''));
+            $claveFecha = $this->claveFechaNormalizada((string) ($turno['fecha_inicio'] ?? '')) . '|' . $this->claveFechaNormalizada((string) ($turno['fecha_fin'] ?? ''));
 
             if (!isset($turnosPorFecha[$claveFecha])) {
                 $turnosPorFecha[$claveFecha] = [
@@ -308,12 +310,12 @@ class GeminiVisionOcrService
             }
 
             foreach (($turno['farmacias'] ?? []) as $f) {
-                $clave = $this->claveNormalizada(($f['nombre'] ?? '') . '|' . ($f['direccion'] ?? '') . '|' . ($f['telefono'] ?? ''));
+                $clave = $this->claveNormalizada(($f['nombre'] ?? '') . ($f['direccion'] ?? '') . ($f['telefono'] ?? ''));
                 $turnosPorFecha[$claveFecha]['farmacias'][$clave] = $f;
             }
 
             foreach (($turno['excepciones'] ?? []) as $e) {
-                $clave = $this->claveNormalizada(($e['nombre_farmacia'] ?? '') . '|' . ($e['fecha_inicio'] ?? '') . '|' . ($e['fecha_fin'] ?? ''));
+                $clave = $this->claveNormalizada(($e['nombre_farmacia'] ?? '') . ($e['fecha_inicio'] ?? '') . ($e['fecha_fin'] ?? ''));
                 $turnosPorFecha[$claveFecha]['excepciones'][$clave] = $e;
             }
         }
@@ -328,9 +330,11 @@ class GeminiVisionOcrService
         $totalAntes = array_sum(array_map(fn($t) => count($t['farmacias'] ?? []), $parsed['turnos']));
         $totalDespues = array_sum(array_map(fn($t) => count($t['farmacias']), $turnosLimpios));
 
-        if ($totalDespues < $totalAntes) {
-            Log::warning("[GeminiVision] Se descartaron " . ($totalAntes - $totalDespues) . " farmacias duplicadas en la respuesta del modelo (de {$totalAntes} a {$totalDespues}). Esto suele pasar cuando se manda una imagen muy grande sin cortar en columnas — con GD activo y columnas más chicas debería dejar de ocurrir.");
-        }
+        // Log incondicional (no solo cuando hay duplicados): sirve para
+        // confirmar en el log que esta versión del código con
+        // deduplicación efectivamente se está ejecutando, sin depender de
+        // que el modelo repita algo en esa corrida puntual.
+        Log::info("[GeminiVision] Deduplicación: {$totalAntes} farmacias recibidas → {$totalDespues} únicas" . ($totalAntes > $totalDespues ? " (se descartaron " . ($totalAntes - $totalDespues) . " duplicadas)" : ""));
 
         $parsed['turnos'] = $turnosLimpios;
 
@@ -340,8 +344,29 @@ class GeminiVisionOcrService
     private function claveNormalizada(string $s): string
     {
         $s = mb_strtolower(trim($s), 'UTF-8');
-        $s = str_replace(['á', 'é', 'í', 'ó', 'ú', 'ñ'], ['a', 'e', 'i', 'o', 'u', 'n'], $s);
-        return preg_replace('/\s+/', ' ', $s);
+        $s = str_replace(
+            ['á', 'é', 'í', 'ó', 'ú', 'ñ', 'à', 'è', 'ì', 'ò', 'ù', 'ä', 'ë', 'ï', 'ö', 'ü'],
+            ['a', 'e', 'i', 'o', 'u', 'n', 'a', 'e', 'i', 'o', 'u', 'a', 'e', 'i', 'o', 'u'],
+            $s
+        );
+        // Elimina TODO lo que no sea letra o número (espacios, puntos, guiones,
+        // barras) para que variaciones de formato entre repeticiones del
+        // modelo (ej. "4537137" vs "453 7137", "Av." vs "Av ") no generen
+        // claves distintas para la misma farmacia.
+        return preg_replace('/[^a-z0-9]/', '', $s);
+    }
+
+    /**
+     * Normaliza 'DD/MM' a 2 dígitos por campo (ej. '3/8' -> '03/08') para
+     * que variaciones menores de formato en la fecha entre repeticiones no
+     * impidan agrupar el mismo turno bajo una sola clave.
+     */
+    private function claveFechaNormalizada(string $fecha): string
+    {
+        if (preg_match('#^(\d{1,2})/(\d{1,2})$#', trim($fecha), $m)) {
+            return str_pad($m[1], 2, '0', STR_PAD_LEFT) . '/' . str_pad($m[2], 2, '0', STR_PAD_LEFT);
+        }
+        return trim($fecha);
     }
 
     private function buildPrompt(): string
