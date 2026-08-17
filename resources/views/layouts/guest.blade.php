@@ -18,7 +18,7 @@
     <body>
         <div class="container py-5 d-flex align-items-center" style="min-height: 100vh;">
             <div class="w-100">
-                <div class="d-flex justify-content-center mb-3">
+                <div class="flex justify-content-center mb-3">
                     <a href="/">
                         <x-application-logo />
                     </a>

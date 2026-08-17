@@ -10,7 +10,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
-<body class="d-flex flex-column h-100">
+<body class="flex flex-column h-100">
     <main class="flex-shrink-0">
         <nav class="tw-nav">
             <div class="tw-nav-inner tw-whitespace-nowrap">
@@ -25,7 +25,7 @@
                     <h1 class="tw-brand-title">Farmacias de Turno</h1>
                 </a>
 
-                <div class="d-flex align-items-center tw-nav-actions tw-flex-nowrap">
+                <div class="flex items-center tw-nav-actions tw-flex-nowrap">
 
                     <form action="{{ route('buscar') }}" method="GET" class="tw-flex tw-items-center tw-space-x-2 tw-flex-nowrap">
                         <input type="date" name="fecha" class="tw-h-10 tw-w-5 tw-px-2 tw-py-2 tw-bg-[#f2f5f8] tw-border-gray-300 tw-rounded-lg" style="padding-left: 6px; padding-right: 6px;" required>
