@@ -11,12 +11,12 @@ class TurnoController extends Controller
 {
     public function index()
     {
-        Carbon::setLocale('es'); 
+        Carbon::setLocale('es');
 
-        $hoy = Carbon::today();
-        $mes = ucfirst($hoy->translatedFormat('F')); 
-        $anio = $hoy->year;
-        
+        $ahora = Carbon::now();
+        $mes = ucfirst($ahora->translatedFormat('F'));
+        $anio = $ahora->year;
+
         $ciudad_santa_fe = Ciudad::where('nombre_ciudad', 'Santa Fe')->first();
 
         $farmacias = collect();
@@ -25,8 +25,8 @@ class TurnoController extends Controller
             $farmacias = DB::table('farmacias_turnos')
                 ->join('turnos', 'farmacias_turnos.id_turno', '=', 'turnos.id_turno')
                 ->join('farmacias', 'farmacias_turnos.id_farmacia', '=', 'farmacias.id_farmacia')
-                ->whereDate('turnos.fecha_hora_inicio', '<=', $hoy)
-                ->whereDate('turnos.fecha_hora_fin', '>=', $hoy)
+                ->where('turnos.fecha_hora_inicio', '<=', $ahora)
+                ->where('turnos.fecha_hora_fin', '>', $ahora)
                 ->where('turnos.id_ciudad', '=', $ciudad_santa_fe->id_ciudad)
                 ->select(
                     'farmacias.id_farmacia',
@@ -53,14 +53,15 @@ class TurnoController extends Controller
             'ciudad' => 'required|integer',
         ]);
 
-        $fecha = $request->fecha;
         $ciudad_id = $request->ciudad;
+        $momentoReferencia = Carbon::parse($request->fecha)->setTime(12, 0, 0);
+        $fecha = $request->fecha;
 
         $farmacias = DB::table('farmacias_turnos')
             ->join('turnos', 'farmacias_turnos.id_turno', '=', 'turnos.id_turno')
             ->join('farmacias', 'farmacias_turnos.id_farmacia', '=', 'farmacias.id_farmacia')
-            ->whereDate('turnos.fecha_hora_inicio', '<=', $fecha)
-            ->whereDate('turnos.fecha_hora_fin', '>=', $fecha)
+            ->where('turnos.fecha_hora_inicio', '<=', $momentoReferencia)
+            ->where('turnos.fecha_hora_fin', '>', $momentoReferencia)
             ->where('turnos.id_ciudad', '=', $ciudad_id)
             ->select(
                 'farmacias.id_farmacia',

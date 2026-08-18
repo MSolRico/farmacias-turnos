@@ -17,6 +17,10 @@ class OcrFarmaciasService
     protected GeminiVisionOcrService $vision;
     protected FarmaciaMatchingService $farmaciaMatching;
 
+    private array $farmaciasVistas = [];
+
+    private int $duplicadasOmitidas = 0;
+
     public function __construct(
         OcrFarmaciasValidator $validator,
         TurnoDataPersister $persister,
@@ -39,6 +43,9 @@ class OcrFarmaciasService
         if (!file_exists($ruta)) {
             return ['error' => "No existe el archivo: $ruta"];
         }
+
+        $this->farmaciasVistas = [];
+        $this->duplicadasOmitidas = 0;
 
         $imgService = app(PdfToImageService::class);
         $imagePaths = $imgService->convertToImage($ruta);
@@ -64,6 +71,10 @@ class OcrFarmaciasService
             $this->procesarResultadoColumna($resultado, $items);
         }
 
+        if ($this->duplicadasOmitidas > 0) {
+            Log::info("[OCR] Se omitieron {$this->duplicadasOmitidas} entradas duplicadas (misma farmacia + mismo turno, detectadas después del match contra la BD).");
+        }
+
         @file_put_contents(
             storage_path('logs/ocr_last_items.json'),
             json_encode($items, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
@@ -78,7 +89,7 @@ class OcrFarmaciasService
             ];
         }
 
-        Log::info('Total de farmacias detectadas: ' . count($items));
+        Log::info('Total de farmacias detectadas (después de deduplicar por identidad canónica): ' . count($items));
 
         $stats = $this->persister->guardarEnBD($items);
         $stats['columnas_con_error'] = $columnasConError;
@@ -201,6 +212,15 @@ class OcrFarmaciasService
         return $similitud >= 80;
     }
 
+    private function claveVista(string $nombre, Carbon $inicio, Carbon $fin): string
+    {
+        $n = mb_strtolower(trim($nombre), 'UTF-8');
+        $n = str_replace(['á', 'é', 'í', 'ó', 'ú', 'ñ'], ['a', 'e', 'i', 'o', 'u', 'n'], $n);
+        $n = preg_replace('/[^a-z0-9]/', '', $n);
+
+        return $n . '|' . $inicio->format('Y-m-d') . '|' . $fin->format('Y-m-d');
+    }
+
     private function procesarFarmacia(array $farmaciaRaw, string $ciudad, Carbon $inicio, Carbon $fin, array &$items): void
     {
         $nombre = trim((string) ($farmaciaRaw['nombre'] ?? ''));
@@ -240,6 +260,14 @@ class OcrFarmaciasService
                 $telefonoValidado = $match['telefono_correcto'];
             }
         }
+
+        $claveVista = $this->claveVista($nombre, $inicio, $fin);
+        if (isset($this->farmaciasVistas[$claveVista])) {
+            $this->duplicadasOmitidas++;
+            Log::debug("[OCR] Duplicado omitido: '{$nombre}' ya estaba agregado para el turno {$inicio->format('d/m')}-{$fin->format('d/m')}");
+            return;
+        }
+        $this->farmaciasVistas[$claveVista] = true;
 
         $items[] = [
             'id_tmp' => Str::random(8),
