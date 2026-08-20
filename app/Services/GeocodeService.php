@@ -30,7 +30,7 @@ class GeocodeService
 
         $data = json_decode($json, true);
 
-        if (empty($data) || !$this->validateReturnedCity($data[0]['display_name'] ?? '')) {
+        if (empty($data) || !$this->validateReturnedCity($data[0]['display_name'] ?? '', $city)) {
             return [null, null];
         }
 
@@ -41,22 +41,42 @@ class GeocodeService
     {
         $ciudad = $this->normalizeCity($ciudad);
 
+        // 1. Dirección completa.
         [$lat, $lng] = $this->getCoordinates($direccion, $ciudad);
-        if ($lat && $lng) return [$lat, $lng];
 
-        if (preg_match('/^(.*?)[\s\-\,]+(\d{1,5})$/u', $direccion, $m)) {
-            [$lat, $lng] = $this->getCoordinates($m[1], $ciudad);
-            if ($lat && $lng) return [$lat, $lng];
+        if ($lat !== null && $lng !== null) {
+            return [$lat, $lng];
         }
 
-        $sinTildes = iconv('UTF-8', 'ASCII//TRANSLIT', $direccion);
-        [$lat, $lng] = $this->getCoordinates($sinTildes, $ciudad);
-        if ($lat && $lng) return [$lat, $lng];
+        // 2. Solo la calle, eliminando el número.
+        if (preg_match('/^(.*?)[\s\-\,]+(\d{1,5})$/u', $direccion, $m)) {
+            [$lat, $lng] = $this->getCoordinates($m[1], $ciudad);
 
+            if ($lat !== null && $lng !== null) {
+                return [$lat, $lng];
+            }
+        }
+
+        // 3. Dirección sin tildes.
+        $sinTildes = iconv('UTF-8', 'ASCII//TRANSLIT', $direccion);
+
+        [$lat, $lng] = $this->getCoordinates($sinTildes, $ciudad);
+
+        if ($lat !== null && $lng !== null) {
+            return [$lat, $lng];
+        }
+
+        // 4. Primeros dos componentes de la dirección.
         $parts = explode(' ', $direccion);
+
         if (count($parts) > 2) {
-            [$lat, $lng] = $this->getCoordinates(implode(' ', array_slice($parts, 0, 2)), $ciudad);
-            if ($lat && $lng) return [$lat, $lng];
+            $direccionReducida = implode(' ', array_slice($parts, 0, 2));
+
+            [$lat, $lng] = $this->getCoordinates($direccionReducida, $ciudad);
+
+            if ($lat !== null && $lng !== null) {
+                return [$lat, $lng];
+            }
         }
 
         return [null, null];
@@ -64,13 +84,22 @@ class GeocodeService
 
     private function normalizeCity(string $c): string
     {
-        $c = trim(mb_strtoupper($c));
-        return str_contains($c, 'SANTO TOM') ? 'Santo Tomé' : 'Santa Fe';
+        $c = trim(mb_strtoupper($c, 'UTF-8'));
+
+        return str_contains($c, 'SANTO TOM')
+            ? 'Santo Tomé'
+            : 'Santa Fe';
     }
 
-    private function validateReturnedCity(string $displayName): bool
+    private function validateReturnedCity(string $displayName, string $ciudad): bool 
     {
-        $display = mb_strtoupper($displayName);
-        return str_contains($display, 'SANTA FE') || str_contains($display, 'SANTO TOM');
+        $display = mb_strtoupper($displayName, 'UTF-8');
+        $ciudad = mb_strtoupper($ciudad, 'UTF-8');
+
+        if ($ciudad === 'SANTO TOMÉ') {
+            return str_contains($display, 'SANTO TOME');
+        }
+
+        return str_contains($display, 'SANTA FE');
     }
 }

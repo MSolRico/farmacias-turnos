@@ -1,5 +1,13 @@
-<svg height="40" width="40" version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 240.292 240.292" xml:space="preserve" fill="#6cde58">
-  <g>
-    <path style="fill:#6cde58;" d="M229.42,82.116h-54.336c-6.005,0-10.878-4.873-10.878-10.878V20.889 c0-6.005-4.873-10.878-10.878-10.878H86.971c-6.005,0-10.878,4.873-10.878,10.878v50.349c0,6.005-4.868,10.878-10.878,10.878 H10.878C4.873,82.116,0,86.99,0,92.994v54.32c0,6.005,4.873,10.878,10.878,10.878h54.336c6.01,0,10.878,4.873,10.878,10.878v50.333 c0,6.005,4.873,10.878,10.878,10.878h66.351c6.005,0,10.878-4.873,10.878-10.878v-50.333c0-6.005,4.873-10.878,10.878-10.878 h54.336c6.005,0,10.878-4.873,10.878-10.878v-54.32C240.298,86.99,235.424,82.116,229.42,82.116z"></path> 
-  </g> 
+<svg class="w-15 h-15" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+  <!-- Marco exterior con esquinas redondeadas -->
+  <rect x="8" y="8" width="84" height="84" rx="22" ry="22" fill="none" stroke="#007A53" stroke-width="3.5" opacity="0.35" />
+
+  <!-- Esquinas acentuadas del marco -->
+  <path d="M 28 8 H 18 A 10 10 0 0 0 8 18 V 28" fill="none" stroke="#007A53" stroke-width="4.5" stroke-linecap="round" />
+  <path d="M 72 8 H 82 A 10 10 0 0 1 92 18 V 28" fill="none" stroke="#007A53" stroke-width="4.5" stroke-linecap="round" />
+  <path d="M 8 72 V 82 A 10 10 0 0 0 18 92 H 28" fill="none" stroke="#007A53" stroke-width="4.5" stroke-linecap="round" />
+  <path d="M 92 72 V 82 A 10 10 0 0 1 82 92 H 72" fill="none" stroke="#007A53" stroke-width="4.5" stroke-linecap="round" />
+
+  <!-- Cruz Verde Central -->
+  <path d="M 38 22 H 62 V 38 H 78 V 62 H 62 V 78 H 38 V 62 H 22 V 38 H 38 Z" fill="#007A53" rx="3" />
 </svg>

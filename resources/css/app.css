@@ -1,30 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
 :root {
   /* COLORES PRIMARIOS */
-  --color-primary-light: #89e579;
-  --color-primary-dark: #6cde58;
-  --color-focus: #7be169;
+    --color-primary-light: #89e579;
+    --color-primary-dark: #003f35;
+    --color-focus: #7be169;
 
   /* COLORES DE FONDO Y BORDES */
   --color-bg-gral: #edfeea;
-  --color-bg-light: #effaed;
-  --color-bg-hover: #f3f4f6;
-  --color-bg-input-auth: #f9fafb;
+    --color-bg-light: #effaed;
+    --color-bg-hover: #f3f4f6;
+    --color-bg-input-auth: #f9fafb;
 
   /* COLORES DE TEXTO Y BORDES */
-  --color-text-darkest: #111827;
-  --color-text-dark: #1f2937;
-  --color-border-light: #e5e7eb;
-  --color-border-medium: #d1d5db;
+    --color-text-darkest: #111827;
+    --color-text-dark: #1f2937;
+    --color-border-light: #e5e7eb;
+    --color-border-medium: #d1d5db;
 }
 
 /* Global font */
 body {
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  background: var(--color-bg-gral);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--color-bg-gral);
+    color: var(--color-text-dark);
 }
 
 /* Plain CSS equivalents to avoid @apply build issues */
@@ -62,9 +62,17 @@ body {
 .tw-brand-title {
   font-size: 1.5rem;
   /* text-2xl */
-  font-weight: 600;
+  font-weight: 700;
+  line-height: 1.1;
   color: var(--color-text-darkest);
   margin: 0;
+}
+
+.tw-brand-title span {
+  display: block;
+  font-weight: 400;
+  color: #068b60;
+  /* Verde para "de Turno" */
 }
 
 .tw-nav-actions {

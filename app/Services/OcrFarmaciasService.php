@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Services\OcrFarmaciasValidator;
 use App\Services\TurnoDataPersister;
 use App\Services\GeminiVisionOcrService;
-use App\Helpers\OcrCleaner;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
@@ -34,9 +33,9 @@ class OcrFarmaciasService
 
     /**
      * Punto de entrada: recibe la ruta al PDF del afiche, lo convierte a
-     * imágenes por columna y le pide a Gemini que extraiga cada columna
-     * como JSON estructurado. Ya no pasa por Tesseract ni por limpieza de
-     * texto por regex.
+     * imágenes por columna y le pide a Gemini Vision que extraiga cada
+     * columna como JSON estructurado.
+     * El pipeline actual ya no utiliza Tesseract ni OcrCleaner.
      */
     public function procesar(string $ruta): array
     {
@@ -123,10 +122,8 @@ class OcrFarmaciasService
 
             [$inicio, $fin] = $fechas;
 
-            // Se arman los items de este turno en un array aparte para
-            // poder aplicarles las excepciones ANTES de mezclarlos al
-            // array general $items (así no hace falta buscar entre todos
-            // los turnos ya procesados de otras columnas).
+            // Se procesan los items del turno por separado para poder
+            // aplicar las excepciones antes de agregarlos al array general.
             $itemsDelTurno = [];
 
             foreach (($turno['farmacias'] ?? []) as $farmaciaRaw) {
@@ -142,9 +139,8 @@ class OcrFarmaciasService
     /**
      * Ajusta las fechas de las farmacias mencionadas en notas de excepción
      * (ej. "La farmacia Azanza estará de turno solo el 01/09 al 02/09"):
-     * en vez de ignorar esa nota (como hacía la versión anterior), la
-     * usamos para acotar el rango de fechas de esa farmacia puntual dentro
-     * del turno, sin afectar al resto.
+     * La excepción acota el rango de fechas de esa farmacia puntual sin
+     * afectar al resto de las farmacias del turno.
      */
     private function aplicarExcepciones(array $excepciones, array &$itemsDelTurno): void
     {
@@ -183,9 +179,8 @@ class OcrFarmaciasService
     }
 
     /**
-     * Comparación tolerante a mayúsculas/tildes/espacios extra, para
-     * matchear el nombre de la excepción contra el nombre ya extraído de
-     * la lista de farmacias del mismo turno.
+     * Compara nombres tolerando diferencias de mayúsculas, tildes,
+     * espacios y pequeños errores de reconocimiento.
      */
     private function nombresCoinciden(string $a, string $b): bool
     {
@@ -231,23 +226,22 @@ class OcrFarmaciasService
             return;
         }
 
-        // Validación / normalización de teléfono (se mantiene como red de
-        // seguridad aunque Gemini ya devuelve el campo separado).
+        // Gemini ya devuelve el teléfono como un campo separado.
+        // Se mantiene la validación como medida de seguridad.
         $telefonoValidado = $telefono !== '' ? $this->validator->validarTelefono($telefono) : null;
 
-        if ($direccion !== '') {
-            $direccion = OcrCleaner::normalizeAddress($direccion);
-            $direccion = OcrCleaner::fixStreetNames($direccion);
-        }
-        [$direccion, $notas] = $direccion !== '' ? OcrCleaner::splitAddressNotes($direccion) : [null, null];
-
-        if (!$telefonoValidado && (!$direccion || strlen($direccion) <= 5)) {
-            Log::info("[Validación] Farmacia descartada - sin teléfono ni dirección válidos: {$nombre}");
+        if (!$telefonoValidado && strlen($direccion) <= 5) {
+            Log::info(
+                "[Validación] Farmacia descartada - sin teléfono ni dirección válidos: {$nombre}"
+            );
             return;
         }
 
-        $confianza = 90; // Gemini vision: confianza base alta, no hay heurística de OCR clásico que la baje
-        $match = $this->farmaciaMatching->buscarCoincidencia($nombre, $ciudad, $direccion ?? '', $telefonoValidado ?? '');
+        // Gemini Vision: confianza base alta al trabajar directamente
+        // sobre la imagen estructurada.
+        $confianza = 90;
+
+        $match = $this->farmaciaMatching->buscarCoincidencia($nombre, $ciudad, $direccion, $telefonoValidado ?? '');
 
         if ($match && $match['confianza'] >= 80) {
             Log::info("✅ MATCH EN BD: '{$nombre}' → '{$match['nombre_correcto']}' (confianza: {$match['confianza']}%)");
@@ -272,10 +266,10 @@ class OcrFarmaciasService
         $items[] = [
             'id_tmp' => Str::random(8),
             'nombre' => $nombre,
-            'direccion' => $direccion ?? null,
+            'direccion' => $direccion !== '' ? $direccion : null,
             'telefono' => $telefonoValidado,
             'ciudad' => $ciudad,
-            'notas' => $notas ?? null,
+            'notas' => null,
             'turn_dates' => [$inicio, $fin],
             'confianza' => $confianza,
         ];
@@ -325,12 +319,18 @@ class OcrFarmaciasService
     }
 
     /**
-     * Se mantiene por compatibilidad si algo externo llama directamente con
-     * texto ya extraído (p.ej. tests). Ya no es el camino principal.
+     * Método legacy mantenido únicamente por compatibilidad.
+     * El flujo actual utiliza procesar($rutaPdf) y Gemini Vision.
      */
     public function procesarTexto(string $textoBruto, ?string $ciudadDefault = 'Santa Fe'): array
     {
-        Log::warning('[OCR] procesarTexto() es un método legacy — el pipeline actual usa Gemini Vision directo sobre la imagen, no texto.');
-        return ['error' => 'procesarTexto ya no es el flujo soportado. Usá procesar($rutaPdf).'];
+        Log::warning('[OCR] procesarTexto() es un método legacy. ' .
+            'El pipeline actual utiliza Gemini Vision directamente ' .
+            'sobre la imagen.');
+
+        return [
+            'error' => 'procesarTexto ya no es el flujo soportado. ' .
+                'Usá procesar($rutaPdf).'
+        ];
     }
 }
