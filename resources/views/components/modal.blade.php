@@ -102,7 +102,7 @@
     x-show="show"
     x-cloak
 
-    class="fixed inset-0 z-[1000] overflow-y-auto"
+    class="fixed inset-0 z-[1000]"
     role="dialog"
     aria-modal="true"
 >
@@ -116,14 +116,14 @@
         x-transition:leave-start="opacity-100"
         x-transition:leave-end="opacity-0"
 
-        class="fixed inset-0 bg-black/50"
+        class="absolute inset-0 z-0 bg-black/50"
 
         @click="show = false"
     ></div>
 
-
+    
     {{-- Contenedor --}}
-    <div class="relative flex min-h-full items-center justify-center p-4">
+    <div class="relative z-10 flex min-h-full items-center justify-center p-4 pointer-events-none">
 
         {{-- Modal --}}
         <div
@@ -137,7 +137,7 @@
             x-transition:leave-start="opacity-100 translate-y-0 scale-100"
             x-transition:leave-end="opacity-0 translate-y-4 scale-95"
 
-            class="relative w-full {{ $maxWidth }} overflow-hidden rounded-2xl bg-white shadow-2xl"
+            class="relative w-full {{ $maxWidth }} overflow-hidden rounded-2xl bg-white shadow-2xl pointer-events-auto"
 
             @click.stop
         >
