@@ -19,18 +19,7 @@
                 {{-- Dirección + ciudad --}}
                 <p class="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
 
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="13"
-                        height="13"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        class="flex-shrink-0">
-                        <path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"></path>
-                        <circle cx="12" cy="10" r="3"></circle>
-                    </svg>
+                    <x-icons.location class="w-3.5 h-3.5 text-slate-400" />
 
                     <span>
                         {{ $farmacia->direccion }}, {{ $farmacia->nombre_ciudad }}
@@ -43,16 +32,7 @@
 
                 <p class="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
 
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="13"
-                        height="13"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2">
-                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                    </svg>
+                    <x-icons.phone class="w-3.5 h-3.5 text-slate-400" />
 
                     <span>{{ $farmacia->telefono }}</span>
 
@@ -81,10 +61,7 @@
                 class="p-2 text-slate-400 hover:text-emerald-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition"
                 title="Ver en el mapa">
 
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"></path>
-                    <circle cx="12" cy="10" r="3"></circle>
-                </svg>
+                <x-icons.location class="w-4 h-4" />
 
             </button>
 
@@ -118,20 +95,7 @@
             @click="$dispatch('open-modal', 'confirm-report-{{ $farmacia->id_farmacia }}')"
             class="w-full inline-flex items-center justify-center gap-2 bg-slate-50 hover:bg-red-50 border border-gray-200 hover:border-red-200 text-slate-600 hover:text-red-600 rounded-xl py-2 text-xs font-semibold transition">
 
-            <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2">
-
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-
-            </svg>
+            <x-icons.alert class="w-3.5 h-3.5" />
 
             Reportar como cerrada
 
@@ -144,19 +108,7 @@
             @click="$dispatch('open-modal', 'login')"
             class="w-full inline-flex items-center justify-center gap-2 bg-slate-50 hover:bg-emerald-50 border border-gray-200 hover:border-emerald-200 text-slate-600 hover:text-emerald-700 rounded-xl py-2 text-xs font-semibold transition">
 
-            <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2">
-
-                <rect x="3" y="11" width="18" height="11" rx="2" />
-                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-
-            </svg>
+            <x-icons.lock class="w-3.5 h-3.5" />
 
             Iniciar sesión para reportar
 
@@ -182,21 +134,7 @@
 
         <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-600">
 
-            <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="26"
-                height="26"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-                aria-hidden="true">
-
-                <path d="M10.3 2.86 1.82 17a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.7 2.86a2 2 0 0 0-3.4 0Z" />
-                <line x1="12" y1="9" x2="12" y2="13" />
-                <line x1="12" y1="17" x2="12.01" y2="17" />
-
-            </svg>
+            <x-icons.warning class="w-[26px] h-[26px]" />
 
         </div>
 

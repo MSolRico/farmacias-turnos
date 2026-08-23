@@ -84,7 +84,7 @@
                     @click="open = !open"
                     class="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-slate-600 hover:bg-gray-200 transition"
                     aria-label="Menú de usuario">
-                    <x-user-icon />
+                    <x-icons.user />
                 </button>
 
 
@@ -101,7 +101,7 @@
                     <a
                         href="{{ route('profile.edit') }}"
                         class="flex items-center gap-2 px-4 py-3 text-sm text-slate-700 hover:bg-gray-50 no-underline">
-                        <x-user-icon />
+                        <x-icons.user />
                         Perfil
                     </a>
 
@@ -113,7 +113,7 @@
                         <button
                             type="submit"
                             class="flex items-center gap-2 px-4 py-3 text-sm text-slate-700 hover:bg-gray-50">
-                            <x-login-icon />
+                            <x-icons.login />
                             Cerrar sesión
                         </button>
                     </form>
@@ -124,7 +124,7 @@
                     <a
                         href="{{ route('login') }}"
                         class="flex items-center gap-2 px-4 py-3 text-sm text-slate-700 hover:bg-gray-50 no-underline">
-                        <x-login-icon />
+                        <x-icons.login />
                         Iniciar sesión
                     </a>
                     @endif
@@ -133,7 +133,7 @@
                     <a
                         href="{{ route('register') }}"
                         class="flex items-center gap-2 px-4 py-3 text-sm text-slate-700 hover:bg-gray-50 no-underline">
-                        <x-register-icon />
+                        <x-icons.register />
                         Registrarse
                     </a>
                     @endif
