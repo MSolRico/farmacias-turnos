@@ -37,6 +37,8 @@ class GeocodeFarmacias extends Command
             return;
         }
 
+        $contadores = ['georef' => 0, 'nominatim' => 0, 'manual' => 0, 'aproximado' => 0, 'fallido' => 0];
+
         foreach ($farmacias as $farmacia) {
 
             $this->line('----------------------------------------------------');
@@ -44,10 +46,7 @@ class GeocodeFarmacias extends Command
             $this->info("Farmacia: {$farmacia->nombre}");
             $this->info("Dirección: {$farmacia->direccion}");
 
-            // La dirección ya viene normalizada desde el pipeline actual.
             $direccion = trim((string) $farmacia->direccion);
-
-            // La ciudad se obtiene desde la relación con la tabla ciudades.
             $ciudad = $farmacia->nombre_ciudad;
 
             if (!$ciudad) {
@@ -59,7 +58,6 @@ class GeocodeFarmacias extends Command
 
             $this->info("Ciudad: {$ciudad}");
 
-            // Evitar enviar una dirección vacía o demasiado corta a Nominatim.
             if (mb_strlen($direccion) < 3) {
                 $this->warn(
                     "⚠ Dirección demasiado corta o inválida, se omite."
@@ -67,8 +65,7 @@ class GeocodeFarmacias extends Command
                 continue;
             }
 
-            // Geocodificación utilizando las variantes definidas en GeocodeService.
-            [$lat, $lng] = $geo->buscarVariantes($direccion, $ciudad);
+            [$lat, $lng, $aproximado, $fuente] = $geo->buscarVariantes($direccion, $ciudad);
 
             if ($lat !== null && $lng !== null) {
 
@@ -79,16 +76,31 @@ class GeocodeFarmacias extends Command
                         'lng' => $lng,
                     ]);
 
-                $this->info("✔ Coordenadas encontradas: LAT {$lat} | LNG {$lng}");
+                if ($aproximado) {
+                    $contadores['aproximado']++;
+                    $this->warn("〰 Coordenadas APROXIMADAS (nivel calle, vía {$fuente}): LAT {$lat} | LNG {$lng}");
+                } else {
+                    $contadores[$fuente]++;
+                    $this->info("✔ Coordenadas encontradas (vía {$fuente}): LAT {$lat} | LNG {$lng}");
+                }
 
             } else {
+                $contadores['fallido']++;
                 $this->warn("✖ No se encontraron coordenadas para: {$farmacia->direccion}, {$ciudad}");
             }
 
-            // Respetar el rate limit de Nominatim.
+            // Georef no publica un rate limit tan estricto como Nominatim,
+            // pero se mantiene el sleep para no saturar ninguna de las
+            // dos APIs (solo se llama a Nominatim si Georef falló).
             sleep(1);
         }
 
+        $this->line('----------------------------------------------------');
         $this->info("🎉 Geocodificación finalizada.");
+        $this->info("   Georef (exacto): {$contadores['georef']}");
+        $this->info("   Nominatim (exacto): {$contadores['nominatim']}");
+        $this->info("   Manual (cargado a mano): {$contadores['manual']}");
+        $this->warn("   Aproximado (nivel calle): {$contadores['aproximado']}");
+        $this->warn("   Sin coordenadas: {$contadores['fallido']}");
     }
 }
