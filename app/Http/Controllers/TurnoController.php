@@ -14,106 +14,103 @@ class TurnoController extends Controller
         Carbon::setLocale('es');
 
         $ahora = Carbon::now();
-        $mes = ucfirst($ahora->translatedFormat('F'));
-        $anio = $ahora->year;
 
-        $ciudad_santa_fe = Ciudad::where('nombre_ciudad', 'Santa Fe')->first();
+        /*
+     * Reportes realizados hoy.
+     * Solo contamos reportes pendientes o verificados.
+     */
+        $reportesHoy = DB::table('reportes_farmacia')
+            ->select(
+                'id_farmacia',
+                DB::raw('COUNT(*) as reportes_hoy'),
+                DB::raw('MAX(created_at) as ultimo_reporte')
+            )
+            ->whereDate(
+                'fecha_reporte',
+                $ahora->toDateString()
+            )
+            ->whereIn('estado', ['pendiente', 'verificado'])
+            ->groupBy('id_farmacia');
 
-        $farmacias = collect();
-
-        if ($ciudad_santa_fe) {
+        /*
+         * Farmacias que están actualmente de turno.
+         */
+        $farmacias = DB::table('farmacias_turnos')
+            ->join(
+                'turnos',
+                'farmacias_turnos.id_turno',
+                '=',
+                'turnos.id_turno'
+            )
+            ->join(
+                'farmacias',
+                'farmacias_turnos.id_farmacia',
+                '=',
+                'farmacias.id_farmacia'
+            )
+            ->join(
+                'ciudades',
+                'turnos.id_ciudad',
+                '=',
+                'ciudades.id_ciudad'
+            )
 
             /*
-             * Reportes realizados hoy.
-             * Solo contamos reportes pendientes o verificados.
+             * Unimos los reportes del día con las farmacias.
+             * LEFT JOIN permite que también aparezcan farmacias
+             * que todavía no tienen ningún reporte.
              */
-            $reportesHoy = DB::table('reportes_farmacia')
-                ->select(
-                    'id_farmacia',
-                    DB::raw('COUNT(*) as reportes_hoy'),
-                    DB::raw('MAX(created_at) as ultimo_reporte')
-                )
-                ->whereDate(
-                    'fecha_reporte',
-                    $ahora->toDateString()
-                )
-                ->whereIn('estado', ['pendiente', 'verificado'])
-                ->groupBy('id_farmacia');
+            ->leftJoinSub(
+                $reportesHoy,
+                'reportes_hoy',
+                function ($join) {
+                    $join->on(
+                        'farmacias.id_farmacia',
+                        '=',
+                        'reportes_hoy.id_farmacia'
+                    );
+                }
+            )
 
-            /*
-             * Farmacias que están actualmente de turno
-             * en la ciudad de Santa Fe.
-             */
-            $farmacias = DB::table('farmacias_turnos')
-                ->join(
-                    'turnos',
-                    'farmacias_turnos.id_turno',
-                    '=',
-                    'turnos.id_turno'
-                )
-                ->join(
-                    'farmacias',
-                    'farmacias_turnos.id_farmacia',
-                    '=',
-                    'farmacias.id_farmacia'
-                )
+            ->where(
+                'turnos.fecha_hora_inicio',
+                '<=',
+                $ahora
+            )
+            ->where(
+                'turnos.fecha_hora_fin',
+                '>',
+                $ahora
+            )
+
+            ->select(
+                'farmacias.id_farmacia',
+                'farmacias.nombre',
+                'farmacias.direccion',
+                'farmacias.telefono',
+                'farmacias.lat',
+                'farmacias.lng',
+                'farmacias_turnos.notas',
 
                 /*
-                 * Unimos los reportes del día con las farmacias.
-                 * LEFT JOIN permite que también aparezcan farmacias
-                 * que todavía no tienen ningún reporte.
+                 * Ciudad a la que pertenece la farmacia.
                  */
-                ->leftJoinSub(
-                    $reportesHoy,
-                    'reportes_hoy',
-                    function ($join) {
-                        $join->on(
-                            'farmacias.id_farmacia',
-                            '=',
-                            'reportes_hoy.id_farmacia'
-                        );
-                    }
-                )
+                'ciudades.nombre_ciudad',
 
-                ->where(
-                    'turnos.fecha_hora_inicio',
-                    '<=',
-                    $ahora
-                )
-                ->where(
-                    'turnos.fecha_hora_fin',
-                    '>',
-                    $ahora
-                )
-                ->where(
-                    'turnos.id_ciudad',
-                    '=',
-                    $ciudad_santa_fe->id_ciudad
-                )
+                DB::raw(
+                    'COALESCE(reportes_hoy.reportes_hoy, 0) as reportes_hoy'
+                ),
 
-                ->select(
-                    'farmacias.id_farmacia',
-                    'farmacias.nombre',
-                    'farmacias.direccion',
-                    'farmacias.telefono',
-                    'farmacias.lat',
-                    'farmacias.lng',
-                    'farmacias_turnos.notas',
+                'reportes_hoy.ultimo_reporte'
+            )
+            ->distinct()
+            ->get();
 
-                    /*
-                     * Si no existen reportes, mostramos 0
-                     * en lugar de NULL.
-                     */
-                    DB::raw(
-                        'COALESCE(reportes_hoy.reportes_hoy, 0) as reportes_hoy'
-                    ),
+        /*
+         * Todas las ciudades disponibles.
 
-                    'reportes_hoy.ultimo_reporte'
-                )
-                ->distinct()
-                ->get();
-        }
-
+         * Se utilizan en el buscador.
+         */
         $ciudades = Ciudad::all();
 
         $isToday = true;
@@ -123,9 +120,6 @@ class TurnoController extends Controller
             compact(
                 'ciudades',
                 'farmacias',
-                'ciudad_santa_fe',
-                'mes',
-                'anio',
                 'isToday'
             )
         );
@@ -237,16 +231,6 @@ class TurnoController extends Controller
                 'fecha',
                 'ciudades'
             )
-        );
-    }
-
-    public function mostrarBusqueda()
-    {
-        $ciudades = Ciudad::all();
-
-        return view(
-            'turnos.buscar',
-            compact('ciudades')
         );
     }
 }

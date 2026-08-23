@@ -117,8 +117,7 @@
             <p class="mb-6 text-sm leading-relaxed text-gray-600">
                 Para poder
                 <strong class="font-semibold text-gray-900">
-                    reportar una farmacia como cerrada
-                </strong>,
+                    reportar una farmacia como cerrada</strong>,
                 primero debés iniciar sesión con tu cuenta.
             </p>
 

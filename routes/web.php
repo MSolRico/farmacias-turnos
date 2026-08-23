@@ -12,11 +12,8 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', [TurnoController::class, 'index'])->name('dashboard');
-Route::get('/buscar', [TurnoController::class, 'mostrarBusqueda'])
-    ->name('buscar');
+Route::get('/buscar', [TurnoController::class, 'buscar'])->name('buscar');
 
-Route::get('/buscar/resultados', [TurnoController::class, 'buscar'])
-    ->name('buscar.resultados');
 
 /*
 |--------------------------------------------------------------------------

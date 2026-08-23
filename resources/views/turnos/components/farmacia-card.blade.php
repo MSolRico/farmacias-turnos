@@ -16,7 +16,7 @@
                     {{ $farmacia->nombre }}
                 </h4>
 
-                {{-- Dirección --}}
+                {{-- Dirección + ciudad --}}
                 <p class="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
 
                     <svg
@@ -32,7 +32,9 @@
                         <circle cx="12" cy="10" r="3"></circle>
                     </svg>
 
-                    <span>{{ $farmacia->direccion }}</span>
+                    <span>
+                        {{ $farmacia->direccion }}, {{ $farmacia->nombre_ciudad }}
+                    </span>
 
                 </p>
 

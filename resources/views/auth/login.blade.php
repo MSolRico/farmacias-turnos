@@ -7,57 +7,57 @@
 
         <!-- Email Address -->
         <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+            <x-input-label for="email" :value="__('Email')" class="mb-1.5 text-gray-700 font-medium" />
+            <x-text-input id="email" class="block w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
+            <x-input-error :messages="$errors->get('email')" class="mt-1.5" />
         </div>
 
         <!-- Password -->
         <div class="mt-4">
-            <x-input-label for="password" :value="__('Contraseña')" />
+            <x-input-label for="password" :value="__('Contraseña')" class="mb-1.5 text-gray-700 font-medium" />
 
-            <x-text-input id="password" class="block mt-1 w-full"
+            <x-text-input id="password" class="block w-full"
                 type="password"
                 name="password"
                 required autocomplete="current-password" />
 
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
+            <x-input-error :messages="$errors->get('password')" class="mt-1.5" />
         </div>
 
         <!-- Remember Me -->
-        <div class="block mt-4">
-            <label for="remember_me" class="inline-flex items-center">
-                <input id="remember_me" type="checkbox" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" name="remember">
-                <span class="ms-2 text-sm text-gray-600">{{ __('Recuerdeme') }}</span>
+        <div class="block mt-5">
+            <label for="remember_me" class="inline-flex items-center cursor-pointer">
+                <input id="remember_me" type="checkbox" class="w-4 h-4 rounded border-gray-300 text-[#0d8a55] shadow-sm focus:ring-[#0d8a55]" name="remember">
+                <span class="ms-2.5 text-sm text-gray-600 font-normal">{{ __('Recuerdeme') }}</span>
             </label>
         </div>
 
-        <div class="flex items-center justify-end mt-4">
+        <div class="flex items-center justify-between mt-6">
             @if (Route::has('password.request'))
-            <a class="underline text-sm text-success hover:text-green-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500" href="{{ route('password.request') }}">
+            <a class="text-sm text-[#0d8a55] hover:underline font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500" href="{{ route('password.request') }}">
                 {{ __('Olvido su contraseña?') }}
             </a>
             @endif
 
-            <x-primary-button class="ms-3">
+            <x-primary-button>
                 {{ __('Iniciar sesión') }}
             </x-primary-button>
         </div>
     </form>
 
     <!-- Divider -->
-    <div class="flex items-center my-6">
-        <hr class="flex-grow border-gray-300">
-        <span class="mx-3 text-gray-400 text-sm">o</span>
-        <hr class="flex-grow border-gray-300">
+    <div class="relative flex py-5 items-center my-2">
+        <div class="flex-grow border-t border-gray-200"></div>
+        <span class="flex-shrink mx-4 text-gray-400 text-sm font-normal">o</span>
+        <div class="flex-grow border-t border-gray-200"></div>
     </div>
 
     <!-- Register -->
     @if (Route::has('register'))
-    <div class="flex items-center justify-center gap-2 mt-6 text-sm text-gray-700">
-        <span>¿No tenés una cuenta?</span>
+    <div class="flex items-center justify-center gap-3 text-sm">
+        <span class="text-gray-700 font-normal">¿No tenés una cuenta?</span>
         <a href="{{ route('register') }}" 
-           class="px-3 py-1 border border-blue-500 text-success rounded-lg font-medium hover:bg-blue-50 transition">
+           class="px-4 py-1.5 border border-gray-200 text-[#0d8a55] font-medium rounded-lg hover:bg-gray-50 transition-colors">
             {{ __('Registrate aquí') }}
         </a>
     </div>

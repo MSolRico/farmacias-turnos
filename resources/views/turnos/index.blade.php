@@ -38,7 +38,7 @@
                     </div>
 
                     <span class="text-xs text-slate-400">
-                        {{ $ciudad_santa_fe->nombre_ciudad ?? 'Santa Fe' }}
+                        Santa Fe - Santo Tomé
                     </span>
 
                 </div>
@@ -96,5 +96,5 @@
      LEAFLET
      ============================================================= --}}
 @push('scripts')
-    @vite('resources/js/turnos/mapa.js')
+@vite('resources/js/turnos/mapa.js')
 @endpush

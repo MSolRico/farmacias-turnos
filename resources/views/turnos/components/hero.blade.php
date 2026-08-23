@@ -1,4 +1,4 @@
-<section class="bg-[#f1f6f5] border border-slate-100 rounded-3xl p-6 relative overflow-hidden">
+<section class="bg-[#f1f6f5] border border-slate-100 rounded-3xl p-6 relative overflow-visible">
 
     <div class="relative z-10 max-w-xl">
 
@@ -20,7 +20,7 @@
             <div class="flex flex-col sm:flex-row gap-2">
 
                 {{-- Fecha --}}
-                <div class="flex items-center bg-white border border-gray-200 rounded-xl px-3 shadow-sm flex-1">
+                <div class="flex items-center bg-white border border-gray-200 rounded-xl px-3 shadow-sm flex-1 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-200 transition">
 
                     {{-- SVG calendario --}}
                     <svg
@@ -43,22 +43,70 @@
                         name="fecha"
                         value="{{ now()->format('Y-m-d') }}"
                         required
-                        class="w-full border-0 bg-transparent text-sm text-slate-700 px-2 py-3 focus:ring-0 focus:outline-none">
+                        class="w-full border-0 bg-transparent text-sm text-slate-700 font-medium px-2 py-3 focus:ring-0 focus:outline-none cursor-pointer">
                 </div>
 
-                {{-- Ciudad --}}
-                <select
-                    name="ciudad"
-                    required
-                    class="bg-white border border-gray-200 rounded-xl px-3 py-3 text-sm text-slate-700 shadow-sm focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none">
-                    <option value="">Elegir ciudad</option>
+                {{-- Ciudad Custom Dropdown (Alpine) --}}
+                <div
+                    x-data="{ 
+                        open: false, 
+                        selected: '{{ request('ciudad', '') }}', 
+                        label: '{{ request('ciudad') ? ($ciudades->firstWhere('id_ciudad', request('ciudad'))->nombre_ciudad ?? 'Elegir ciudad') : 'Elegir ciudad' }}' 
+                    }"
+                    class="relative flex-1">
 
-                    @foreach($ciudades as $ciudad)
-                    <option value="{{ $ciudad->id_ciudad }}">
-                        {{ $ciudad->nombre_ciudad }}
-                    </option>
-                    @endforeach
-                </select>
+                    {{-- Botón Selector --}}
+                    <button
+                        type="button"
+                        @click="open = !open"
+                        @click.away="open = false"
+                        class="w-full h-full flex items-center justify-between bg-white border border-gray-200 rounded-xl px-3 py-3 shadow-sm text-sm font-medium focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition">
+
+                        <div class="flex items-center gap-2 truncate">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400 flex-shrink-0">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
+                            <span x-text="label" :class="selected ? 'text-slate-700' : 'text-gray-400'"></span>
+                        </div>
+
+                        <svg class="w-4 h-4 text-gray-400 transition-transform duration-200" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+
+                    {{-- Field Oculto para que viaje en el GET --}}
+                    <input type="hidden" name="ciudad" :value="selected" required>
+
+                    {{-- Lista Flotante Estilizada --}}
+                    <div
+                        x-show="open"
+                        x-transition:enter="transition ease-out duration-100"
+                        x-transition:enter-start="opacity-0 scale-95"
+                        x-transition:enter-end="opacity-100 scale-100"
+                        x-transition:leave="transition ease-in duration-75"
+                        x-transition:leave-start="opacity-100 scale-100"
+                        x-transition:leave-end="opacity-0 scale-95"
+                        class="absolute z-[100] left-0 right-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl max-h-56 overflow-y-auto p-1.5 focus:outline-none"
+                        style="display: none;">
+
+                        @foreach($ciudades as $ciudad)
+                        <button
+                            type="button"
+                            @click="selected = '{{ $ciudad->id_ciudad }}'; label = '{{ $ciudad->nombre_ciudad }}'; open = false"
+                            class="w-full text-left px-3.5 py-2.5 text-sm font-medium rounded-xl transition-colors flex items-center justify-between"
+                            :class="selected == '{{ $ciudad->id_ciudad }}' ? 'bg-emerald-50 text-emerald-800' : 'text-slate-700 hover:bg-slate-50'">
+                            <span>{{ $ciudad->nombre_ciudad }}</span>
+
+                            <template x-if="selected == '{{ $ciudad->id_ciudad }}'">
+                                <svg class="w-4 h-4 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                            </template>
+                        </button>
+                        @endforeach
+                    </div>
+                </div>
 
                 {{-- Botón --}}
                 <button
@@ -111,7 +159,7 @@
     <div class="hidden sm:flex absolute right-6 bottom-21 w-58 h-58 rounded-3xl items-center justify-center text-emerald-600">
 
         <img src="{{ asset('images/farmacia.png') }}" alt="ilustracion farmacia">
-
+  
     </div>
 
 </section>
