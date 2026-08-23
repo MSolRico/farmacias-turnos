@@ -240,4 +240,62 @@ class TurnoController extends Controller
             )
         );
     }
+
+    // Geolocalización
+    public function getFarmaciasCercanas(Request $request)
+    {
+        // 1. Validar que se recibieron latitud, longitud y el ID de la ciudad
+        $request->validate([
+            'latitud' => 'required|numeric',
+            'longitud' => 'required|numeric',
+            'ciudad_id' => 'required|integer', 
+        ]);
+
+        $userLat = $request->input('latitud');
+        $userLon = $request->input('longitud');
+        $ciudadId = $request->input('ciudad_id');
+        $hoy = Carbon::today(); // Para filtrar por turnos de hoy
+
+        // Radio de la Tierra en Kilómetros (necesario para la fórmula Haversine)
+        $radioTierraKm = 6371;
+
+        // 2. Consulta con la fórmula Haversine y los filtros de turno
+        $farmacias = DB::table('farmacias_turnos')
+            ->join('turnos', 'farmacias_turnos.id_turno', '=', 'turnos.id_turno')
+            ->join('farmacias', 'farmacias_turnos.id_farmacia', '=', 'farmacias.id_farmacia')
+            
+            // FILTROS DE TURNO (replicando la lógica de index/buscar)
+            ->whereDate('turnos.fecha_hora_inicio', '<=', $hoy)
+            ->whereDate('turnos.fecha_hora_fin', '>=', $hoy)
+            ->where('turnos.id_ciudad', '=', $ciudadId) 
+            
+            // SELECCIÓN Y CÁLCULO DE DISTANCIA (USANDO farmacias.lat y farmacias.lng)
+            ->selectRaw("
+                farmacias.id_farmacia,
+                farmacias.nombre,
+                farmacias.direccion,
+                farmacias.telefono,
+                farmacias.lat,
+                farmacias.lng,
+                farmacias_turnos.notas,
+                ($radioTierraKm * acos(
+                    cos(radians(?)) * cos(radians(farmacias.lat)) * cos(radians(farmacias.lng) - radians(?)) 
+                    + sin(radians(?)) * sin(radians(farmacias.lat))
+                )) AS distancia_km", [$userLat, $userLon, $userLat])
+            
+            ->distinct()
+            
+            // 3. Ordenar por la distancia calculada (el más cercano primero)
+            ->orderBy('distancia_km', 'asc') 
+            ->get();
+
+        // 4. Devolver la lista ordenada como JSON
+        return response()->json([
+            'farmacias' => $farmacias,
+            'user_location' => [
+                'lat' => $userLat,
+                'lng' => $userLon
+            ]
+        ]);
+    }
 }
