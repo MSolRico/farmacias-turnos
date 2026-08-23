@@ -171,6 +171,12 @@ class TurnoController extends Controller
                 '=',
                 'farmacias.id_farmacia'
             )
+            ->join(
+                'ciudades',
+                'turnos.id_ciudad',
+                '=',
+                'ciudades.id_ciudad'
+            )
 
             ->leftJoinSub(
                 $reportesDelDia,
@@ -208,6 +214,7 @@ class TurnoController extends Controller
                 'farmacias.lat',
                 'farmacias.lng',
                 'farmacias_turnos.notas',
+                'ciudades.nombre_ciudad',
 
                 DB::raw(
                     'COALESCE(reportes_dia.reportes_hoy, 0) as reportes_hoy'

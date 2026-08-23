@@ -12,71 +12,81 @@
         <div class="grid grid-cols-12 gap-6">
 
             {{-- =================================================
-                 COLUMNA IZQUIERDA
+                 HERO
                  ================================================= --}}
-            <div class="col-span-12 lg:col-span-6 space-y-6">
+            <div class="col-span-12 lg:col-span-6 order-1">
 
-                {{-- HERO --}}
                 @include('turnos.components.hero')
 
+            </div>
 
-                {{-- =================================================
-                     CABECERA DE LISTADO
-                     ================================================= --}}
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            {{-- =================================================
+                 MAPA
+                 ================================================= --}}
+            <div class="col-span-12 lg:col-span-6 order-2 lg:row-span-2">
 
-                    <div class="flex items-center gap-2">
+                @include('turnos.components.mapa')
 
-                        <h3 class="font-bold text-slate-900 text-base">
-                            Farmacias de turno
-                        </h3>
+            </div>
 
-                        <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">
-                            {{ $farmacias->count() }}
+            {{-- =================================================
+                 CABECERA DE LISTADO
+                 ================================================= --}}
+            <div class="col-span-12 lg:col-span-6 order-3">
+
+                <div class="space-y-6">
+
+                    {{-- Cabecera --}}
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+
+                        <div class="flex items-center gap-2">
+
+                            <h3 class="font-bold text-slate-900 text-base">
+                                Farmacias de turno
+                            </h3>
+
+                            <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">
+                                {{ $farmacias->count() }}
+                            </span>
+
+                        </div>
+
+                        <span class="text-xs text-slate-400">
+                            Santa Fe - Santo Tomé
                         </span>
 
                     </div>
-
-                    <span class="text-xs text-slate-400">
-                        Santa Fe - Santo Tomé
-                    </span>
-
-                </div>
 
 
                 {{-- =================================================
                      LISTA DE FARMACIAS
                      ================================================= --}}
 
-                @if($farmacias->count())
+                    @if($farmacias->count())
 
-                <div class="space-y-3">
+                        <div class="space-y-3">
 
-                    @foreach($farmacias as $index => $farmacia)
+                            @foreach($farmacias as $index => $farmacia)
 
-                    @include('turnos.components.farmacia-card', [
-                    'farmacia' => $farmacia,
-                    'index' => $index
-                    ])
+                                @include('turnos.components.farmacia-card', [
+                                    'farmacia' => $farmacia,
+                                    'index' => $index
+                                ])
 
-                    @endforeach
+                            @endforeach
+
+                        </div>
+
+                    @else
+
+                {{-- Sin resultados --}}
+                        @include('turnos.components.empty-state')
+
+                    @endif
 
                 </div>
 
-                @else
-
-                {{-- Sin resultados --}}
-                @include('turnos.components.empty-state')
-
-                @endif
-
             </div>
-
-
-            {{-- =================================================
-                 COLUMNA DERECHA - MAPA
-                 ================================================= --}}
-            @include('turnos.components.mapa')
 
         </div>
 
@@ -96,5 +106,5 @@
      LEAFLET
      ============================================================= --}}
 @push('scripts')
-@vite('resources/js/turnos/mapa.js')
+    @vite('resources/js/turnos/mapa.js')
 @endpush
