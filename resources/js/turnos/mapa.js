@@ -33,9 +33,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const telefono = farmacia.telefono
             ? `
-            <div class="farmacia-popup-dato farmacia-popup-telefono">
-                <span>☎</span>
-                <span>${escapeHtml(farmacia.telefono)}</span>
+            <div class="farmacia-popup-fila">
+
+                <div class="farmacia-popup-icono">
+                    <svg fill="#0a543f" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07
+                            19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67 A2 2 0 0 1 4.11 2h3
+                            a2 2 0 0 1 2 1.72 c.12.9.33 1.78.62 2.63 a2 2 0 0 1-.45 2.11L8 9.73
+                            a16 16 0 0 0 6 6 l1.27-1.27 a2 2 0 0 1 2.11-.45 c.85.29 1.73.5 2.63.62
+                            A2 2 0 0 1 22 16.92z"/>
+                    </svg>
+                </div>
+
+                <span class="farmacia-popup-texto">
+                    ${escapeHtml(farmacia.telefono)}
+                </span>
             </div>
         `
             : '';
@@ -61,9 +73,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
             </div>
 
-            <div class="farmacia-popup-dato">
-                <span>📍</span>
-                <span>${escapeHtml(farmacia.direccion ?? '')}</span>
+            <div class="farmacia-popup-separador"></div>
+
+            <div class="farmacia-popup-fila">
+
+                <div class="farmacia-popup-icono">
+                    <svg fill="#0a543f" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12,2C8.1,2,5,5.1,5,9c0,6,7,13,7,13s7-7.1,7-13C19,5.1,15.9,2,12,2z M12,12.5c-1.9,0-3.5-1.6-3.5-3.5s1.6-3.5,3.5-3.5s3.5,1.6,3.5,3.5S13.9,12.5,12,12.5z"></path>
+                    </svg>
+                </div>
+
+                <span class="farmacia-popup-texto">
+                    ${escapeHtml(farmacia.direccion ?? '')}
+                </span>
+
             </div>
 
             ${telefono}
