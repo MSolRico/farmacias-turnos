@@ -52,6 +52,14 @@
                 De turno
             </span>
 
+            @if(isset($farmacia->distancia_km))
+
+                <span class="px-2 py-1 bg-blue-50 text-blue-600 border border-blue-100 font-semibold text-[10px] rounded-md whitespace-nowrap">
+                    {{ number_format($farmacia->distancia_km, 2, ',', '.') }} km
+                </span>
+
+            @endif
+
             {{-- Centrar en mapa --}}
             @if($farmacia->lat && $farmacia->lng)
 

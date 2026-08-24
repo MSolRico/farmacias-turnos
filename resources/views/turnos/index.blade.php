@@ -41,46 +41,46 @@
 
                         <div class="flex items-center gap-2">
 
-                            <h3 class="font-bold text-slate-900 text-base">
+                            <h3 id="titulo-listado" class="font-bold text-slate-900 text-base">
                                 Farmacias de turno
                             </h3>
 
-                            <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">
+                            <span id="cantidad-farmacias" class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">
                                 {{ $farmacias->count() }}
                             </span>
 
                         </div>
 
-                        <span class="text-xs text-slate-400">
+                        <span id="subtitulo-listado" class="text-xs text-slate-400">
                             Santa Fe - Santo Tomé
                         </span>
 
                     </div>
 
 
-                {{-- =================================================
+                    {{-- =================================================
                      LISTA DE FARMACIAS
                      ================================================= --}}
 
                     @if($farmacias->count())
 
-                        <div class="space-y-3">
+                    <div id="lista-farmacias" class="space-y-3">
 
-                            @foreach($farmacias as $index => $farmacia)
+                        @foreach($farmacias as $index => $farmacia)
 
-                                @include('turnos.components.farmacia-card', [
-                                    'farmacia' => $farmacia,
-                                    'index' => $index
-                                ])
+                        @include('turnos.components.farmacia-card', [
+                        'farmacia' => $farmacia,
+                        'index' => $index
+                        ])
 
-                            @endforeach
+                        @endforeach
 
-                        </div>
+                    </div>
 
                     @else
 
-                {{-- Sin resultados --}}
-                        @include('turnos.components.empty-state')
+                    {{-- Sin resultados --}}
+                    @include('turnos.components.empty-state')
 
                     @endif
 

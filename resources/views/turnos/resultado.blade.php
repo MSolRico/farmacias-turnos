@@ -54,65 +54,58 @@
              CONTENIDO PRINCIPAL
         ========================================================= --}}
         <div class="grid grid-cols-12 gap-6">
-
+            
 
             {{-- =====================================================
                  LISTADO
             ====================================================== --}}
-            <div class="col-span-12 lg:col-span-6">
+            <div class="col-span-12 lg:col-span-6 order-1">
 
-                <div class="bg-white border border-gray-200 rounded-3xl shadow-sm">
+                <div class="space-y-6">
 
                     {{-- Cabecera --}}
-                    <div class="px-5 py-4 border-b border-gray-100">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
 
-                        <h2 class="font-bold text-slate-900">
-                            Farmacias encontradas
-                        </h2>
+                        <div class="flex items-center gap-2">
 
-                        <p class="text-sm text-slate-500 mt-1">
+                            <h3 id="titulo-listado" class="font-bold text-slate-900 text-base">
+                                Farmacias de turno
+                            </h3>
 
-                            @if($farmacias->count() === 1)
-
-                            Se encontró 1 farmacia de turno.
-
-                            @else
-
-                            Se encontraron {{ $farmacias->count() }}
-                            farmacias de turno.
-
-                            @endif
-
-                        </p>
-
-                    </div>
-
-
-                    {{-- Contenido --}}
-                    <div class="p-4">
-
-                        @if($farmacias->isEmpty())
-
-                        @include('turnos.components.empty-state')
-
-                        @else
-
-                        <div class="space-y-3">
-
-                            @foreach($farmacias as $index => $farmacia)
-
-                            @include('turnos.components.farmacia-card', [
-                            'farmacia' => $farmacia,
-                            'index' => $index
-                            ])
-
-                            @endforeach
+                            <span id="cantidad-farmacias" class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">
+                                {{ $farmacias->count() }}
+                            </span>
 
                         </div>
 
-                        @endif
+                        <span id="subtitulo-listado" class="text-xs text-slate-400">
+                            {{ $ciudad->nombre_ciudad }}
+                        </span>
 
                     </div>
+
+                    {{-- Lista de farmacias --}}
+                    @if($farmacias->count())
+
+                    <div id="lista-farmacias" class="space-y-3">
+
+                        @foreach($farmacias as $index => $farmacia)
+
+                        @include('turnos.components.farmacia-card', [
+                            'farmacia' => $farmacia,
+                            'index' => $index
+                        ])
+
+                        @endforeach
+
+                    </div>
+
+                    @else
+
+                        {{-- Sin resultados --}}
+                        @include('turnos.components.empty-state')
+
+                    @endif
 
                 </div>
 
@@ -122,7 +115,11 @@
             {{-- =====================================================
                  MAPA
             ====================================================== --}}
-            @include('turnos.components.mapa')
+            <div class="col-span-12 lg:col-span-6 order-2">
+
+                @include('turnos.components.mapa', ['mostrarCercanas' => false])
+
+            </div>
 
         </div>
 
