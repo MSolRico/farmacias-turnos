@@ -148,6 +148,22 @@ document.addEventListener('DOMContentLoaded', function () {
 
             <div class="farmacia-popup-separador"></div>
 
+            ${Number(farmacia.reportes_hoy ?? 0) > 0 ? `
+                <div class="farmacia-popup-alerta">
+
+                    <div class="farmacia-popup-alerta-icono">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.3 3.2 2.1 17a2 2 0 0 0 1.7 3h16.4a2 2 0 0 0 1.7-3L13.7 3.2a2 2 0 0 0-3.4 0Z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                    </div>
+
+                    <span>Reportada como cerrada</span>
+
+                </div>
+            ` : ''}
+            
             <div class="farmacia-popup-fila">
 
                 <div class="farmacia-popup-icono">
@@ -168,41 +184,45 @@ document.addEventListener('DOMContentLoaded', function () {
     `;
     }
 
-    function crearIconoFarmacia(numero) {
+    function crearIconoFarmacia(numero, reportada = false) {
+
+        const color = reportada
+            ? '#d97706'
+            : '#047857';
 
         return L.divIcon({
             className: 'farmacia-marker',
 
             html: `
-                <svg
-                    width="38"
-                    height="48"
-                    viewBox="0 0 38 48"
-                    xmlns="http://www.w3.org/2000/svg">
+            <svg
+                width="38"
+                height="48"
+                viewBox="0 0 38 48"
+                xmlns="http://www.w3.org/2000/svg">
 
-                    <path
-                        d="M19 2 C9.6 2 2 9.6 2 19
-                           C2 30.5 12.5 40.5 19 46
-                           C25.5 40.5 36 30.5 36 19
-                           C36 9.6 28.4 2 19 2Z"
-                        fill="#047857"
-                        stroke="white"
-                        stroke-width="3"
-                    />
+                <path
+                    d="M19 2 C9.6 2 2 9.6 2 19
+                       C2 30.5 12.5 40.5 19 46
+                       C25.5 40.5 36 30.5 36 19
+                       C36 9.6 28.4 2 19 2Z"
+                    fill="${color}"
+                    stroke="white"
+                    stroke-width="3"
+                />
 
-                    <text
-                        x="19"
-                        y="24"
-                        text-anchor="middle"
-                        font-family="Arial, sans-serif"
-                        font-size="14"
-                        font-weight="700"
-                        fill="white">
-                        ${numero}
-                    </text>
+                <text
+                    x="19"
+                    y="24"
+                    text-anchor="middle"
+                    font-family="Arial, sans-serif"
+                    font-size="14"
+                    font-weight="700"
+                    fill="white">
+                    ${numero}
+                </text>
 
-                </svg>
-            `,
+            </svg>
+        `,
 
             iconSize: [38, 48],
             iconAnchor: [19, 48],
@@ -219,8 +239,11 @@ document.addEventListener('DOMContentLoaded', function () {
             return null;
         }
 
+        const reportada =
+            Number(farmacia.reportes_hoy ?? 0) > 0;
+
         return L.marker([lat, lng], {
-            icon: crearIconoFarmacia(numero)
+            icon: crearIconoFarmacia(numero, reportada)
         })
             .addTo(map)
             .bindPopup(

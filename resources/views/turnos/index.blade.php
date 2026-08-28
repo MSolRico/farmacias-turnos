@@ -70,7 +70,8 @@
 
                         @include('turnos.components.farmacia-card', [
                         'farmacia' => $farmacia,
-                        'index' => $index
+                        'index' => $index,
+                        'puedeReportar' => true
                         ])
 
                         @endforeach

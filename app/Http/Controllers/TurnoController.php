@@ -244,7 +244,7 @@ class TurnoController extends Controller
     // Geolocalización
     public function getFarmaciasCercanas(Request $request)
     {
-        // 1. Validar que se recibieron latitud y longitud
+        // Validar que se recibieron latitud y longitud
         $request->validate([
             'latitud' => 'required|numeric',
             'longitud' => 'required|numeric',
@@ -257,44 +257,71 @@ class TurnoController extends Controller
         // Radio de la Tierra en Kilómetros (necesario para la fórmula Haversine)
         $radioTierraKm = 6371;
 
-        // 2. Consulta con la fórmula Haversine y los filtros de turno
+        // Reportes realizados hoy.
+        $reportesHoy = DB::table('reportes_farmacia')
+            ->select(
+                'id_farmacia',
+                DB::raw('COUNT(*) as reportes_hoy')
+            )
+            ->whereDate(
+                'fecha_reporte',
+                $ahora->toDateString()
+            )
+            ->whereIn('estado', ['pendiente', 'verificado'])
+            ->groupBy('id_farmacia');
+
+
+        // Farmacias de turno ordenadas según la distancia al usuario.
         $farmacias = DB::table('farmacias_turnos')
             ->join('turnos', 'farmacias_turnos.id_turno', '=', 'turnos.id_turno')
             ->join('farmacias', 'farmacias_turnos.id_farmacia', '=', 'farmacias.id_farmacia')
             ->join('ciudades', 'turnos.id_ciudad', '=', 'ciudades.id_ciudad')
 
-            // FILTROS DE TURNO (replicando la lógica de index/buscar)
+            // Unimos los reportes del día.
+            ->leftJoinSub(
+                $reportesHoy,
+                'reportes_hoy',
+                function ($join) {
+                    $join->on('farmacias.id_farmacia', '=', 'reportes_hoy.id_farmacia');
+                }
+            )
+
+            // Turnos actualmente activos
             ->where('turnos.fecha_hora_inicio', '<=', $ahora)
             ->where('turnos.fecha_hora_fin', '>', $ahora)
 
             // SELECCIÓN Y CÁLCULO DE DISTANCIA (USANDO farmacias.lat y farmacias.lng)
             ->selectRaw("
-                farmacias.id_farmacia,
-                farmacias.nombre,
-                farmacias.direccion,
-                farmacias.telefono,
-                farmacias.lat,
-                farmacias.lng,
-                farmacias_turnos.notas,
-                ciudades.nombre_ciudad,
-                ($radioTierraKm * acos(
+            farmacias.id_farmacia,
+            farmacias.nombre,
+            farmacias.direccion,
+            farmacias.telefono,
+            farmacias.lat,
+            farmacias.lng,
+            farmacias_turnos.notas,
+            ciudades.nombre_ciudad,
+
+            COALESCE(reportes_hoy.reportes_hoy, 0) AS reportes_hoy,
+            (
+                $radioTierraKm * acos(
                     cos(radians(?)) * cos(radians(farmacias.lat)) * cos(radians(farmacias.lng) - radians(?))
                     + sin(radians(?)) * sin(radians(farmacias.lat))
                 )) AS distancia_km", [$userLat, $userLon, $userLat])
 
             ->distinct()
 
-            // 3. Ordenar por la distancia calculada (el más cercano primero)
+            // La farmacia más cercana primero
             ->orderBy('distancia_km', 'asc')
             ->get();
 
+        // Renderizar nuevamente las cards para actualizar el listado mediante JavaScript.
         $html = '';
 
         foreach ($farmacias as $index => $farmacia) {
             $html .= view(
                 'turnos.components.farmacia-card',
                 ['farmacia' => $farmacia,
-                 'index' => $index]
+                  'index' => $index]
             )->render();
         }
 

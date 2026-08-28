@@ -1,6 +1,6 @@
 <div class="bg-white border border-gray-200 rounded-2xl p-4 hover:border-emerald-300 transition shadow-sm">
 
-    <div class="flex items-center justify-between gap-4">
+    <div class="flex items-start justify-between gap-4">
 
         {{-- Información --}}
         <div class="flex items-start gap-3 min-w-0">
@@ -19,7 +19,7 @@
                 {{-- Dirección + ciudad --}}
                 <p class="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
 
-                    <x-icons.location class="w-3.5 h-3.5 text-slate-400" />
+                    <x-icons.location class="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
 
                     <span>
                         {{ $farmacia->direccion }}, {{ $farmacia->nombre_ciudad }}
@@ -32,7 +32,7 @@
 
                 <p class="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
 
-                    <x-icons.phone class="w-3.5 h-3.5 text-slate-400" />
+                    <x-icons.phone class="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
 
                     <span>{{ $farmacia->telefono }}</span>
 
@@ -48,15 +48,15 @@
         {{-- Acciones --}}
         <div class="flex items-center gap-2 flex-shrink-0">
 
-            <span class="hidden sm:inline-flex px-2 py-1 bg-emerald-100 text-emerald-700 font-semibold text-[10px] rounded-md">
+            <span class="hidden sm:inline-flex px-2 py-1 bg-emerald-100 text-emerald-700 font-semibold text-[10px] rounded-md whitespace-nowrap">
                 De turno
             </span>
 
             @if(isset($farmacia->distancia_km))
 
-                <span class="px-2 py-1 bg-blue-50 text-blue-600 border border-blue-100 font-semibold text-[10px] rounded-md whitespace-nowrap">
-                    {{ number_format($farmacia->distancia_km, 2, ',', '.') }} km
-                </span>
+            <span class="px-2 py-1 bg-blue-50 text-blue-600 border border-blue-100 font-semibold text-[10px] rounded-md whitespace-nowrap">
+                {{ number_format($farmacia->distancia_km, 2, ',', '.') }} km
+            </span>
 
             @endif
 
@@ -94,37 +94,80 @@
     @endif
 
     {{-- Reporte --}}
-    <div class="mt-3">
+    @if(($puedeReportar ?? true) || (($farmacia->reportes_hoy ?? 0) > 0))
 
-        @auth
+    <div class="mt-3 pt-3 border-t border-gray-100">
 
-        <button
-            type="button"
-            @click="$dispatch('open-modal', 'confirm-report-{{ $farmacia->id_farmacia }}')"
-            class="w-full inline-flex items-center justify-center gap-2 bg-slate-50 hover:bg-red-50 border border-gray-200 hover:border-red-200 text-slate-600 hover:text-red-600 rounded-xl py-2 text-xs font-semibold transition">
+        <div class="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
 
-            <x-icons.alert class="w-3.5 h-3.5" />
+            {{-- Reportar: solo para el turno actual --}}
+            @if($puedeReportar ?? true)
 
-            Reportar como cerrada
+            <div class="flex items-center gap-2 min-w-0">
 
-        </button>
+                <span class="text-xs text-slate-500 whitespace-nowrap">
+                    ¿Está cerrada?
+                </span>
 
-        @else
+                @auth
 
-        <button
-            type="button"
-            @click="$dispatch('open-modal', 'login')"
-            class="w-full inline-flex items-center justify-center gap-2 bg-slate-50 hover:bg-emerald-50 border border-gray-200 hover:border-emerald-200 text-slate-600 hover:text-emerald-700 rounded-xl py-2 text-xs font-semibold transition">
+                <button
+                    type="button"
+                    @click="$dispatch('open-modal', 'confirm-report-{{ $farmacia->id_farmacia }}')"
+                    class="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-red-600 transition">
 
-            <x-icons.lock class="w-3.5 h-3.5" />
+                    <x-icons.alert class="w-3.5 h-3.5" />
 
-            Iniciar sesión para reportar
+                    Reportar
 
-        </button>
+                </button>
 
-        @endauth
+                @else
+
+                <button
+                    type="button"
+                    @click="$dispatch('open-modal', 'login')"
+                    class="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-emerald-700 transition">
+
+                    <x-icons.lock class="w-3.5 h-3.5" />
+
+                    Reportar
+
+                </button>
+
+                @endauth
+
+            </div>
+
+            @endif
+
+            {{-- Estado del reporte --}}
+            @if(($farmacia->reportes_hoy ?? 0) > 0)
+
+            {{-- Separador --}}
+            @if($puedeReportar ?? true)
+
+            <div class="h-4 w-px bg-gray-200 flex-shrink-0"></div>
+
+            @endif
+
+            <div class="flex items-center gap-2 flex-shrink-0">
+
+                <x-icons.warning class="w-3.5 h-3.5 text-red-500" />
+
+                <span class="text-xs font-medium text-red-600 whitespace-nowrap">
+                    Reportada como cerrada
+                </span>
+
+            </div>
+
+            @endif
+
+        </div>
 
     </div>
+
+    @endif
 
 </div>
 
@@ -137,8 +180,7 @@
     maxWidth="md"
     focusable>
 
-    {{-- Cabecera --}}
-    <div class="border-b border-gray-100 px-6 py-5 text-center">
+    <div class="px-5 py-5 text-center">
 
         <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-red-600">
 
@@ -147,27 +189,18 @@
         </div>
 
         <h5 class="text-lg font-semibold text-gray-900">
-            Confirmar reporte
-        </h5>
-
-    </div>
-
-    {{-- Contenido --}}
-    <div class="px-6 py-5 text-center">
-
-        <p class="text-sm leading-relaxed text-gray-700">
             ¿Confirmás que
             <strong>{{ $farmacia->nombre }}</strong>
             se encuentra
             <strong class="text-red-600">cerrada</strong>?
-        </p>
+        </h5>
 
         <div class="mt-4 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3">
 
             <p class="text-xs leading-relaxed text-amber-800">
                 Reportá la farmacia solamente si comprobaste que
-                <strong>no se encuentra prestando servicio durante su turno</strong>.
-                Tu reporte ayudará a otros usuarios a evitar un viaje innecesario.
+                <strong>no está prestando servicio durante su turno</strong>.
+                Tu reporte ayuda a otros usuarios a evitar un viaje innecesario.
             </p>
 
         </div>
