@@ -14,7 +14,7 @@
             {{-- =================================================
                  HERO
                  ================================================= --}}
-            <div class="col-span-12 lg:col-span-6 order-1">
+            <div class="col-span-12 lg:col-span-6 order-1 lg:col-start-1 lg:row-start-1">
 
                 @include('turnos.components.hero')
 
@@ -23,7 +23,7 @@
             {{-- =================================================
                  MAPA
                  ================================================= --}}
-            <div class="col-span-12 lg:col-span-6 order-2 lg:row-span-2">
+            <div class="col-span-12 lg:col-span-6 order-2 lg:col-start-7 lg:row-start-1 lg:row-span-2">
 
                 @include('turnos.components.mapa')
 
@@ -32,7 +32,7 @@
             {{-- =================================================
                  CABECERA DE LISTADO
                  ================================================= --}}
-            <div class="col-span-12 lg:col-span-6 order-3">
+            <div class="col-span-12 lg:col-span-6 order-3 lg:col-start-1 lg:row-start-2">
 
                 <div class="space-y-6">
 

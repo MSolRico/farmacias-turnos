@@ -12,6 +12,79 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const map = L.map('map').setView(centroSantaFe, 13);
 
+    const mapaContenedor = document.getElementById('mapa-contenedor');
+    const btnPantallaCompleta = document.getElementById('btn-pantalla-completa');
+    const btnCerrarMapa = document.getElementById('btn-cerrar-mapa');
+
+    let mapaFullscreen = false;
+
+    function abrirMapaFullscreen() {
+
+        mapaFullscreen = true;
+
+        mapaContenedor.style.position = 'fixed';
+        mapaContenedor.style.top = '0';
+        mapaContenedor.style.left = '0';
+        mapaContenedor.style.right = '0';
+        mapaContenedor.style.bottom = '0';
+        mapaContenedor.style.width = '100vw';
+        mapaContenedor.style.height = '100dvh';
+        mapaContenedor.style.zIndex = '9999';
+        mapaContenedor.style.borderRadius = '0';
+
+        btnPantallaCompleta.style.display = 'none';
+
+        btnCerrarMapa.classList.remove('hidden');
+        btnCerrarMapa.classList.add('flex');
+
+        document.body.style.overflow = 'hidden';
+
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 100);
+    }
+
+
+    function cerrarMapaFullscreen() {
+
+        mapaFullscreen = false;
+
+        mapaContenedor.style.position = '';
+        mapaContenedor.style.top = '';
+        mapaContenedor.style.left = '';
+        mapaContenedor.style.right = '';
+        mapaContenedor.style.bottom = '';
+        mapaContenedor.style.width = '';
+        mapaContenedor.style.height = '';
+        mapaContenedor.style.zIndex = '';
+        mapaContenedor.style.borderRadius = '';
+
+        btnPantallaCompleta.style.display = '';
+
+        btnCerrarMapa.classList.add('hidden');
+        btnCerrarMapa.classList.remove('flex');
+
+        document.body.style.overflow = '';
+
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 100);
+    }
+
+
+    if (mapaContenedor && btnPantallaCompleta && btnCerrarMapa) {
+
+        btnPantallaCompleta.addEventListener(
+            'click',
+            abrirMapaFullscreen
+        );
+
+        btnCerrarMapa.addEventListener(
+            'click',
+            cerrarMapaFullscreen
+        );
+    }
+
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);

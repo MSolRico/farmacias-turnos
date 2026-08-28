@@ -9,58 +9,58 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 w-full">
 
         {{-- =========================================================
-             ENCABEZADO
-        ========================================================= --}}
-        <div class="mb-6">
-
-            <a
-                href="{{ route('dashboard') }}"
-                class="inline-flex items-center gap-2 text-sm font-medium text-emerald-700 hover:text-emerald-900 transition mb-4">
-
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="17"
-                    height="17"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2">
-
-                    <path d="m15 18-6-6 6-6" />
-
-                </svg>
-
-                Volver al inicio
-
-            </a>
-
-            <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">
-                Resultado de búsqueda
-            </h1>
-
-            <p class="mt-1 text-sm sm:text-base text-slate-500">
-                Farmacias de turno en
-                <span class="font-medium text-slate-700">
-                    {{ $ciudad->nombre_ciudad }}
-                </span>
-                ·
-                {{ \Carbon\Carbon::parse($fecha)->translatedFormat('l d \d\e F \d\e Y') }}
-            </p>
-
-        </div>
-
-
-        {{-- =========================================================
              CONTENIDO PRINCIPAL
         ========================================================= --}}
         <div class="grid grid-cols-12 gap-6">
-            
 
-            {{-- =====================================================
-                 LISTADO
-            ====================================================== --}}
-            <div class="col-span-12 lg:col-span-6 order-1">
+        {{-- =====================================================
+             COLUMNA IZQUIERDA
+        ====================================================== --}}
+            <div class="col-span-12 lg:col-span-6 order-2 lg:order-1">
 
+                {{-- ENCABEZADO --}}
+                <div class="mb-6">
+
+                    <a
+                        href="{{ route('dashboard') }}"
+                        class="inline-flex items-center gap-2 text-sm font-medium text-emerald-700 hover:text-emerald-900 transition mb-4">
+
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="17"
+                            height="17"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2">
+
+                            <path d="m15 18-6-6 6-6" />
+
+                        </svg>
+
+                        Volver al inicio
+
+                    </a>
+
+                    <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">
+                        Resultado de búsqueda
+                    </h1>
+
+                    <p class="mt-1 text-sm sm:text-base text-slate-500">
+                        Farmacias de turno en
+                        <span class="font-medium text-slate-700">
+                            {{ $ciudad->nombre_ciudad }}
+                        </span>
+                        ·
+                        {{ \Carbon\Carbon::parse($fecha)->translatedFormat('l d \d\e F \d\e Y') }}
+                    </p>
+
+                </div>
+
+
+                {{-- =====================================================
+                     LISTADO
+                ====================================================== --}}
                 <div class="space-y-6">
 
                     {{-- Cabecera --}}
@@ -92,8 +92,8 @@
                         @foreach($farmacias as $index => $farmacia)
 
                         @include('turnos.components.farmacia-card', [
-                            'farmacia' => $farmacia,
-                            'index' => $index
+                        'farmacia' => $farmacia,
+                        'index' => $index
                         ])
 
                         @endforeach
@@ -102,8 +102,8 @@
 
                     @else
 
-                        {{-- Sin resultados --}}
-                        @include('turnos.components.empty-state')
+                    {{-- Sin resultados --}}
+                    @include('turnos.components.empty-state')
 
                     @endif
 
@@ -115,7 +115,7 @@
             {{-- =====================================================
                  MAPA
             ====================================================== --}}
-            <div class="col-span-12 lg:col-span-6 order-2">
+            <div class="col-span-12 lg:col-span-6 order-1 lg:order-2">
 
                 @include('turnos.components.mapa', ['mostrarCercanas' => false])
 
@@ -125,7 +125,7 @@
 
     </div>
 
-     {{-- =========================================================
+    {{-- =========================================================
          CARACTERÍSTICAS
          ========================================================= --}}
     @include('turnos.components.caracteristicas')

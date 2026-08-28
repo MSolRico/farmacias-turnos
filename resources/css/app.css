@@ -274,8 +274,8 @@ body {
 }
 
 .farmacia-popup-numero {
-    width: 38px;
-    height: 38px;
+    width: 35px;
+    height: 35px;
     flex-shrink: 0;
 
     display: flex;
@@ -293,7 +293,7 @@ body {
 
 .farmacia-popup-nombre {
     color: #0f172a;
-    font-size: 18px;
+    font-size: 17px;
     font-weight: 700;
     line-height: 1.35;
 }
@@ -332,8 +332,8 @@ body {
 }
 
 .farmacia-popup-icono {
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
     flex-shrink: 0;
 
     display: flex;
@@ -346,8 +346,8 @@ body {
 }
 
 .farmacia-popup-icono svg {
-    width: 15px;
-    height: 15px;
+    width: 16px;
+    height: 16px;
 }
 
 .farmacia-popup-texto {
