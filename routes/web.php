@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [TurnoController::class, 'index'])->name('dashboard');
 Route::get('/buscar', [TurnoController::class, 'buscar'])->name('buscar');
 Route::post('/farmacias/cercanas', [TurnoController::class, 'getFarmaciasCercanas']);
+Route::view('/terminos-y-condiciones', 'terminos')->name('terminos');
+Route::view('/politica-de-privacidad', 'privacidad')->name('privacidad');
 
 /*
 |--------------------------------------------------------------------------
