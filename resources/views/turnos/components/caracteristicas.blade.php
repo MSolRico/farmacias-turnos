@@ -5,7 +5,7 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
 
             {{-- Actualización --}}
-            <div class="flex items-start gap-3">
+            <div class="flex items-start justify-center md:justify-start gap-3">
 
                 <div class="p-2.5 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-xl flex-shrink-0">
 
@@ -32,7 +32,7 @@
 
 
             {{-- Reportes --}}
-            <div class="flex items-start gap-3">
+            <div class="flex items-start justify-center md:justify-start gap-3">
 
                 <div class="p-2.5 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-xl flex-shrink-0">
 
@@ -57,7 +57,7 @@
 
 
             {{-- Mapa --}}
-            <div class="flex items-start gap-3">
+            <div class="flex items-start justify-center md:justify-start gap-3">
 
                 <div class="p-2.5 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-xl flex-shrink-0">
 
