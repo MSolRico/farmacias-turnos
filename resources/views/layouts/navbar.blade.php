@@ -36,12 +36,6 @@
             </a>
 
             <a
-                href="#mapa"
-                class="text-slate-600 hover:text-emerald-600 transition no-underline">
-                Mapa
-            </a>
-
-            <a
                 href="#informacion"
                 class="text-slate-600 hover:text-emerald-600 transition no-underline">
                 Información

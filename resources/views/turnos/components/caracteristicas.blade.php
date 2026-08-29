@@ -1,4 +1,4 @@
-<section class="border-t border-gray-200 bg-white py-8 mt-4">
+<section id="informacion" class="border-t border-gray-200 bg-white py-8 mt-4">
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6">
 
