@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
   /* COLORES PRIMARIOS */
@@ -167,6 +168,14 @@ body {
 .tw-dropdown button.tw-dropdown-link:focus {
   outline: none;
   box-shadow: none;
+}
+
+input[type="date"] {
+    color-scheme: light;
+}
+
+.dark input[type="date"] {
+    color-scheme: dark;
 }
 
 /* Report button styling */
@@ -436,4 +445,23 @@ body {
     color: #475569;
     background: #f8fafc;
     border-radius: 8px;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+    -webkit-text-fill-color: #334155;
+    -webkit-box-shadow: 0 0 0 1000px white inset;
+    box-shadow: 0 0 0 1000px white inset;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus,
+.dark input:-webkit-autofill:active {
+    -webkit-text-fill-color: #e2e8f0;
+    -webkit-box-shadow: 0 0 0 1000px #1e293b inset;
+    box-shadow: 0 0 0 1000px #1e293b inset;
 }

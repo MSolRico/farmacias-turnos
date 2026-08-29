@@ -137,7 +137,7 @@
             x-transition:leave-start="opacity-100 translate-y-0 scale-100"
             x-transition:leave-end="opacity-0 translate-y-4 scale-95"
 
-            class="relative w-full {{ $maxWidth }} overflow-hidden rounded-2xl bg-white shadow-2xl pointer-events-auto"
+            class="relative w-full {{ $maxWidth }} overflow-hidden rounded-2xl bg-white dark:bg-slate-900 shadow-2xl pointer-events-auto"
 
             @click.stop
         >

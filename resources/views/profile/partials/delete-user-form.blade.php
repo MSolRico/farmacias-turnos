@@ -1,10 +1,10 @@
 <section class="space-y-6">
     <header>
-        <h2 class="text-lg font-medium text-gray-900">
+        <h2 class="text-lg font-medium text-gray-900 dark:text-slate-100">
             {{ __('Borrar Cuenta') }}
         </h2>
 
-        <p class="mt-1 text-sm text-gray-600">
+        <p class="mt-1 text-sm text-gray-600 dark:text-slate-400">
             {{ __('Una vez que su cuenta sea eliminada, todos sus recursos y datos serán eliminados de manera permanente. Antes de eliminar su cuenta, por favor descargue cualquier dato o información que desee conservar.') }}
         </p>
     </header>
@@ -12,18 +12,18 @@
     <x-danger-button
         x-data=""
         x-on:click.prevent="$dispatch('open-modal', 'confirm-user-deletion')"
-    >{{ __('Borrar Cuenta') }}</x-danger-button>
+        >{{ __('Borrar Cuenta') }}</x-danger-button>
 
     <x-modal name="confirm-user-deletion" :show="$errors->userDeletion->isNotEmpty()" focusable>
-        <form method="post" action="{{ route('profile.destroy') }}" class="p-6">
+        <form method="post" action="{{ route('profile.destroy') }}" class="p-6 bg-white dark:bg-slate-900">
             @csrf
             @method('delete')
 
-            <h2 class="text-lg font-medium text-gray-900">
-                {{ __('Estás seguro de que quieres eliminar tu cuenta?') }}
+            <h2 class="text-lg font-medium text-gray-900 dark:text-slate-100">
+                {{ __('¿Estás seguro de que quieres eliminar tu cuenta?') }}
             </h2>
 
-            <p class="mt-1 text-sm text-gray-600">
+            <p class="mt-1 text-sm text-gray-600 dark:text-slate-400">
                 {{ __('Una vez que su cuenta sea eliminada, todos sus recursos y datos serán eliminados de forma permanente. Por favor, ingrese su contraseña para confirmar que desea eliminar su cuenta de manera permanente.') }}
             </p>
 

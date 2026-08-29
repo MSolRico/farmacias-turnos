@@ -1,6 +1,6 @@
 <footer
     id="contacto"
-    class="bg-emerald-950 text-white text-xs py-5 border-t border-emerald-900">
+    class="bg-emerald-950 text-white text-xs py-5 border-t border-emerald-900 dark:border-emerald-800">
 
     <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
 

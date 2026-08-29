@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" x-data="tema">
 
 <head>
     <meta charset="UTF-8">
@@ -16,9 +16,21 @@
     <!-- Styles -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    <script>
+        if (
+            localStorage.getItem('tema') === 'dark' ||
+            (
+                !localStorage.getItem('tema') &&
+                window.matchMedia('(prefers-color-scheme: dark)').matches
+            )
+        ) {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
 </head>
 
-<body class="bg-[#f9f9fb] text-slate-700 antialiased">
+<body class="bg-[#f9f9fb] dark:bg-slate-950 text-slate-700 dark:text-slate-200 antialiased">
 
     <main class="min-h-screen flex items-center justify-center px-4 py-10">
 
@@ -33,12 +45,29 @@
             </div>
 
             {{-- TARJETA --}}
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-8">
+            <div class="bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm p-8">
                 {{ $slot }}
             </div>
         </div>
 
     </main>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('tema', () => ({
+                toggleTema() {
+                    const html = document.documentElement;
+                    html.classList.toggle('dark');
+                    localStorage.setItem(
+                        'tema',
+                        html.classList.contains('dark') ?
+                        'dark' :
+                        'light'
+                    );
+                }
+            }));
+        });
+    </script>
 
 </body>
 

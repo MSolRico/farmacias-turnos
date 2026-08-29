@@ -4,7 +4,7 @@
 
 @section('content')
 
-<div class="bg-gray-50 text-slate-700 min-h-screen">
+<div class="bg-gray-50 dark:bg-slate-950 text-slate-700 dark:text-slate-200 min-h-screen">
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 w-full">
 
@@ -13,7 +13,7 @@
         ========================================================= --}}
         <div class="grid grid-cols-12 gap-6">
 
-        {{-- =====================================================
+            {{-- =====================================================
              COLUMNA IZQUIERDA
         ====================================================== --}}
             <div class="col-span-12 lg:col-span-6 order-2 lg:order-1">
@@ -42,13 +42,13 @@
 
                     </a>
 
-                    <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">
+                    <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
                         Resultado de búsqueda
                     </h1>
 
-                    <p class="mt-1 text-sm sm:text-base text-slate-500">
+                    <p class="mt-1 text-sm sm:text-base text-slate-500 dark:text-slate-400">
                         Farmacias de turno en
-                        <span class="font-medium text-slate-700">
+                        <span class="font-medium text-slate-700 dark:text-slate-300">
                             {{ $ciudad->nombre_ciudad }}
                         </span>
                         ·
@@ -68,11 +68,11 @@
 
                         <div class="flex items-center gap-2">
 
-                            <h3 id="titulo-listado" class="font-bold text-slate-900 text-base">
+                            <h3 id="titulo-listado" class="font-bold text-slate-900 dark:text-slate-100 text-base">
                                 Farmacias de turno
                             </h3>
 
-                            <span id="cantidad-farmacias" class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">
+                            <span id="cantidad-farmacias" class="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 text-xs font-bold rounded-full">
                                 {{ $farmacias->count() }}
                             </span>
 

@@ -1,4 +1,4 @@
-<section id="informacion" class="border-t border-gray-200 bg-white py-8 mt-4">
+<section id="informacion" class="border-t border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 py-8 mt-4">
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6">
 
@@ -7,7 +7,7 @@
             {{-- Actualización --}}
             <div class="flex items-start gap-3">
 
-                <div class="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl flex-shrink-0">
+                <div class="p-2.5 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-xl flex-shrink-0">
 
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="4" width="18" height="18" rx="2"></rect>
@@ -19,11 +19,11 @@
                 </div>
 
                 <div>
-                    <h5 class="font-bold text-slate-800">
+                    <h5 class="font-bold text-slate-800 dark:text-slate-200">
                         Información actualizada
                     </h5>
 
-                    <p class="text-gray-400 text-xs mt-1">
+                    <p class="text-gray-400 dark:text-slate-400 text-xs mt-1">
                         Consultá las farmacias de turno disponibles para cada día.
                     </p>
                 </div>
@@ -34,7 +34,7 @@
             {{-- Reportes --}}
             <div class="flex items-start gap-3">
 
-                <div class="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl flex-shrink-0">
+                <div class="p-2.5 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-xl flex-shrink-0">
 
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
@@ -44,11 +44,11 @@
                 </div>
 
                 <div>
-                    <h5 class="font-bold text-slate-800">
+                    <h5 class="font-bold text-slate-800 dark:text-slate-200">
                         Reportes de usuarios
                     </h5>
 
-                    <p class="text-gray-400 text-xs mt-1">
+                    <p class="text-gray-400 dark:text-slate-400 text-xs mt-1">
                         Los usuarios pueden informar si una farmacia está cerrada.
                     </p>
                 </div>
@@ -59,7 +59,7 @@
             {{-- Mapa --}}
             <div class="flex items-start gap-3">
 
-                <div class="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl flex-shrink-0">
+                <div class="p-2.5 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 rounded-xl flex-shrink-0">
 
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21 3 6"></polygon>
@@ -70,11 +70,11 @@
                 </div>
 
                 <div>
-                    <h5 class="font-bold text-slate-800">
+                    <h5 class="font-bold text-slate-800 dark:text-slate-200">
                         Ubicación en el mapa
                     </h5>
 
-                    <p class="text-gray-400 text-xs mt-1">
+                    <p class="text-gray-400 dark:text-slate-400 text-xs mt-1">
                         Encontrá rápidamente las farmacias disponibles en tu zona.
                     </p>
                 </div>
