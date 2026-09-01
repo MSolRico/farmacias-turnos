@@ -20,20 +20,26 @@ class TurnoDataPersister
 
     public function guardarEnBD(array $items): array
     {
-        $stats = ['farmacias' => 0, 'turnos' => 0, 'actualizadas' => 0, 'rechazadas' => 0];
+        $stats = [
+            'farmacias_nuevas' => 0,
+            'farmacias_actualizadas' => 0,
+            'farmacias_rechazadas' => 0,
+            'turnos_nuevos' => 0,
+            'asignaciones_creadas' => 0,
+        ];
         DB::beginTransaction();
         try {
             foreach ($items as $it) {
                 // validar nombre minimo
                 if (empty($it['nombre']) || empty($it['turn_dates'])) continue;
-                
+
                 // Rechazar farmacias con confianza muy baja
-                if (isset($it['confianza']) && $it['confianza'] < 45) {
-                    \Log::warning("❌ Farmacia rechazada por baja confianza: {$it['nombre']} ({$it['confianza']}%)");
-                    $stats['rechazadas']++;
+                if (isset($it['confianza']) &&$it['confianza'] < 45) {
+                    Log::warning("❌ Farmacia rechazada por baja confianza: {$it['nombre']} ({$it['confianza']}%)");
+                    $stats['farmacias_rechazadas']++;
                     continue;
                 }
-                
+
                 [$inicio, $fin] = $it['turn_dates'];
 
                 // Crear o recuperar ciudad
@@ -50,9 +56,10 @@ class TurnoDataPersister
                         'nombre' => $it['nombre'],
                         'direccion' => $it['direccion'],
                         'telefono' => $it['telefono'],
-                        'id_ciudad' => $ciudad->id_ciudad
+                        'id_ciudad' => $ciudad->id_ciudad,
                     ]);
-                    $stats['farmacias']++;
+                    $stats['farmacias_nuevas']++;
+                    Log::info("🆕 Farmacia CREADA: {$farmacia->nombre}");
                 } else {
                     // actualizar datos faltantes
                     $changed = false;
@@ -66,18 +73,27 @@ class TurnoDataPersister
                     }
                     if ($changed) {
                         $farmacia->save();
-                        $stats['actualizadas']++;
+                        $stats['farmacias_actualizadas']++;
+                        Log::info("🔄 Farmacia ACTUALIZADA: {$farmacia->nombre}");
                     }
                 }
 
-                // Geocoding solo si hace falta (respeta rate-limit)
-                if ((empty($farmacia->lat) || empty($farmacia->lng)) && !empty($farmacia->direccion)) {
+                // Geolocalización
+                // Solo se ejecuta si la farmacia no tiene latitud o
+                // longitud y además dispone de una dirección.
+                if ((empty($farmacia->lat) || empty($farmacia->lng)) &&!empty($farmacia->direccion)) {
+                    Log::info("📍 Geocodificando farmacia: {$farmacia->nombre}");
                     [$lat, $lng] = $this->geo->buscarVariantes($farmacia->direccion, $ciudad->nombre_ciudad);
-                    if ($lat && $lng) {
+                    if ($lat !== null && $lng !== null) {
                         $farmacia->lat = $lat;
                         $farmacia->lng = $lng;
                         $farmacia->save();
+                        Log::info("✅ Coordenadas guardadas para {$farmacia->nombre}: {$lat}, {$lng}");
+
+                        // Respetar rate-limit del servicio de geocodificación.
                         sleep(1);
+                    } else {
+                        Log::warning("⚠️ No se pudieron obtener coordenadas para: {$farmacia->nombre} | {$farmacia->direccion}");
                     }
                 }
 
@@ -86,23 +102,22 @@ class TurnoDataPersister
                     [
                         'fecha_hora_inicio' => $inicio->toDateTimeString(),
                         'fecha_hora_fin' => $fin->toDateTimeString(),
-                        'id_ciudad' => $ciudad->id_ciudad
+                        'id_ciudad' => $ciudad->id_ciudad,
                     ],
                     [
-                        'nombre_turno' => 'Turno ' . $inicio->format('d/m')
+                        'nombre_turno' => 'Turno ' . $inicio->format('d/m'),
                     ]
                 );
 
                 if (!$turno->exists) {
                     $turno->save();
-                    \Log::info("✅ Turno CREADO: {$inicio->format('d/m/Y')} - {$fin->format('d/m/Y')}");
+                    $stats['turnos_nuevos']++;
+                    Log::info("✅ Turno CREADO: {$inicio->format('d/m/Y')} - {$fin->format('d/m/Y')}");
                 } else {
-                    // Usamos DEBUG. Esto evita que los turnos ya existentes (como en la nota de excepción) inflen el log.
-                    \Log::debug("🔎 Turno ENCONTRADO (no creado): {$inicio->format('d/m/Y')} - {$fin->format('d/m/Y')}");
+                    Log::debug("🔎 Turno ENCONTRADO (no creado): {$inicio->format('d/m/Y')} - {$fin->format('d/m/Y')}");
                 }
 
-                $stats['turnos']++; // Este contador se mantiene porque cuenta la ASIGNACIÓN de la farmacia al turno.
-
+                // Relación farmacia ↔ turno
                 $pivot = DB::table('farmacias_turnos')
                     ->where('id_farmacia', $farmacia->id_farmacia)
                     ->where('id_turno', $turno->id_turno)
@@ -115,15 +130,26 @@ class TurnoDataPersister
                         'id_turno' => $turno->id_turno,
                         'notas' => $it['notas'] ?? null,
                     ]);
+                    $stats['asignaciones_creadas']++;
+                    Log::debug("🔗 Asignación creada: {$farmacia->nombre} → turno {$turno->id_turno}");
                 }
             }
             DB::commit();
         } catch (\Throwable $e) {
             DB::rollBack();
+            Log::error('❌ Error guardando datos de turnos: ' . $e->getMessage());
             return ['error' => $e->getMessage()];
         }
 
-        \Log::info("📊 Estadísticas finales: Creadas: {$stats['farmacias']}, Turnos: {$stats['turnos']}, Actualizadas: {$stats['actualizadas']}, Rechazadas: {$stats['rechazadas']}");
+        // Estadísticas finales
+        Log::info(
+            "📊 Estadísticas finales: " .
+            "Farmacias nuevas: {$stats['farmacias_nuevas']}, " .
+            "Actualizadas: {$stats['farmacias_actualizadas']}, " .
+            "Rechazadas: {$stats['farmacias_rechazadas']}, " .
+            "Turnos nuevos: {$stats['turnos_nuevos']}, " .
+            "Asignaciones creadas: {$stats['asignaciones_creadas']}"
+        );
         return $stats;
     }
 }

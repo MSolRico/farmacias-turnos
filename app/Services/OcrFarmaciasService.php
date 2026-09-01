@@ -15,6 +15,7 @@ class OcrFarmaciasService
     protected TurnoDataPersister $persister;
     protected GeminiVisionOcrService $vision;
     protected FarmaciaMatchingService $farmaciaMatching;
+    protected PdfToImageService $imgService;
 
     private array $farmaciasVistas = [];
 
@@ -23,12 +24,15 @@ class OcrFarmaciasService
     public function __construct(
         OcrFarmaciasValidator $validator,
         TurnoDataPersister $persister,
-        GeminiVisionOcrService $vision
+        GeminiVisionOcrService $vision,
+        FarmaciaMatchingService $farmaciaMatching,
+        PdfToImageService $imgService
     ) {
         $this->validator = $validator;
         $this->persister = $persister;
         $this->vision = $vision;
-        $this->farmaciaMatching = app(FarmaciaMatchingService::class);
+        $this->farmaciaMatching = $farmaciaMatching;
+        $this->imgService = $imgService;
     }
 
     /**
@@ -46,8 +50,7 @@ class OcrFarmaciasService
         $this->farmaciasVistas = [];
         $this->duplicadasOmitidas = 0;
 
-        $imgService = app(PdfToImageService::class);
-        $imagePaths = $imgService->convertToImage($ruta);
+        $imagePaths = $this->imgService->convertToImage($ruta);
 
         if (!$imagePaths || !is_array($imagePaths) || count($imagePaths) === 0) {
             return ['error' => 'No se pudo convertir el PDF a imágenes con Poppler'];
@@ -82,8 +85,11 @@ class OcrFarmaciasService
         if (empty($items)) {
             Log::warning('No se detectaron farmacias válidas en el afiche');
             return [
-                'farmacias' => 0,
-                'turnos' => 0,
+                'farmacias_nuevas' => 0,
+                'farmacias_actualizadas' => 0,
+                'farmacias_rechazadas' => 0,
+                'turnos_nuevos' => 0,
+                'asignaciones_creadas' => 0,
                 'columnas_con_error' => $columnasConError,
             ];
         }

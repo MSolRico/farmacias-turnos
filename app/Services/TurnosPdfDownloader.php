@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class TurnosPdfDownloader
 {
@@ -17,20 +17,24 @@ class TurnosPdfDownloader
     ) {}
 
     /**
- * Descarga el PDF automáticamente desde la página del colegio
- *
- * @param bool $force Forzar descarga aunque exista uno reciente
- * @return array{success: bool, path: string|null, message: string, url: string|null}
- */
-    public function downloadLatest(bool $force = false): array
+     * Descarga el PDF de turnos correspondiente al mes solicitado.
+     *
+     * @return array{success: bool, status: string, path: string|null, url: string|null, message: string}
+     */
+    public function downloadForMonth(Carbon $fechaObjetivo,bool $force = false): array 
     {
         try {
-            // Extraer URL del PDF
-            $scraperResult = $this->scraper->extractPdfUrl();
+            $anio = $fechaObjetivo->year;
+            $mes = $fechaObjetivo->month;
+
+            $scraperResult = $this->scraper->extractPdfUrl(
+                $fechaObjetivo
+            );
 
             if (!$scraperResult['success']) {
                 return [
                     'success' => false,
+                    'status' => $scraperResult['status'] ?? 'error',
                     'path' => null,
                     'url' => null,
                     'message' => $scraperResult['message'],
@@ -38,25 +42,22 @@ class TurnosPdfDownloader
             }
 
             $pdfUrl = $scraperResult['url'];
-            Log::info('URL del PDF obtenida', ['url' => $pdfUrl]);
-
-            // Verificar metadata antes de descargar
-            $metadata = $this->scraper->getPdfMetadata($pdfUrl);
-            if ($metadata) {
-                $sizeInMB = round((int)$metadata['content_length'] / 1024 / 1024, 2);
-                Log::info('Metadata del PDF', [
-                    'size' => "{$sizeInMB} MB",
-                    'last_modified' => $metadata['last_modified'],
-                ]);
-            }
-
-            // Descargar el PDF
-            return $this->download($pdfUrl, $force);
-        } catch (\Exception $e) {
-            Log::error('Error en downloadLatest', ['error' => $e->getMessage()]);
+            Log::info('URL del PDF obtenida', [
+                'url' => $pdfUrl,
+                'mes' => $mes,
+                'anio' => $anio,
+            ]);
+            return $this->download($pdfUrl, $fechaObjetivo, $force);
+        } catch (\Throwable $e) {
+            Log::error('Error en downloadForMonth', [
+                'error' => $e->getMessage(),
+                'mes' => $fechaObjetivo->month,
+                'anio' => $fechaObjetivo->year,
+            ]);
 
             return [
                 'success' => false,
+                'status' => 'error',
                 'path' => null,
                 'url' => null,
                 'message' => "Error: {$e->getMessage()}",
@@ -65,38 +66,46 @@ class TurnosPdfDownloader
     }
 
     /**
- * Descarga el PDF desde una URL específica
- */
-    public function download(string $url, bool $force = false): array
+     * Descarga el PDF desde una URL específica
+     */
+    public function download(string $url, Carbon $fechaObjetivo, bool $force = false): array 
     {
         try {
             // Verificar cache
-            if (!$force && $recentFile = $this->getRecentPdf()) {
+            if (!$force && ($recentFile = $this->getRecentPdf($fechaObjetivo))) {
                 return [
-                    'success' => false,
+                    'success' => true,
+                    'status' => 'cached',
                     'path' => $recentFile,
                     'url' => $url,
-                    'message' => 'Ya existe un PDF reciente. Use force=true para descargar nuevamente.',
+                    'message' => 'Se utilizará el PDF reciente existente.',
                 ];
             }
 
-            Log::info('Descargando PDF', ['url' => $url]);
+            Log::info('Descargando PDF', [
+                'url' => $url,
+                'mes' => $fechaObjetivo->month,
+                'anio' => $fechaObjetivo->year,
+            ]);
 
             // Descargar con timeout y retry
             $response = Http::timeout(60)
                 ->retry(3, 1000)
                 ->withHeaders([
-                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    'User-Agent' =>
+                        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) ' .
+                        'AppleWebKit/537.36 (KHTML, like Gecko) ' .
+                        'Chrome/120.0.0.0 Safari/537.36',
                 ])
                 ->get($url);
 
             if (!$response->successful()) {
-                throw new \Exception("HTTP {$response->status()}");
+                throw new \RuntimeException("HTTP {$response->status()}");
             }
 
             // Validar contenido
             if (!$this->isPdfContent($response)) {
-                throw new \Exception('El contenido descargado no es un PDF válido');
+                throw new \RuntimeException('El contenido descargado no es un PDF válido');
             }
 
             // Guardar
@@ -122,11 +131,12 @@ class TurnosPdfDownloader
 
             return [
                 'success' => true,
+                'status' => 'downloaded',
                 'path' => $absolutePath, // ← Retornar ruta normalizada
                 'url' => $url,
                 'message' => "PDF descargado exitosamente ({$fileSizeMB} MB)",
             ];
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('Error al descargar PDF', [
                 'url' => $url,
                 'error' => $e->getMessage(),
@@ -134,6 +144,7 @@ class TurnosPdfDownloader
 
             return [
                 'success' => false,
+                'status' => 'error',
                 'path' => null,
                 'url' => $url,
                 'message' => "Error: {$e->getMessage()}",
@@ -141,7 +152,8 @@ class TurnosPdfDownloader
         }
     }
 
-    private function getRecentPdf(): ?string
+    // Busca un PDF reciente correspondiente al mes solicitado.
+    private function getRecentPdf(Carbon $fechaObjetivo): ?string 
     {
         $files = Storage::files(self::STORAGE_PATH);
 
@@ -149,24 +161,33 @@ class TurnosPdfDownloader
             return null;
         }
 
+        $periodo = sprintf('%04d%02d', $fechaObjetivo->year, $fechaObjetivo->month);
+
         $latestFile = collect($files)
+            ->filter(fn($file) => str_contains(basename($file), $periodo))
             ->sortByDesc(fn($file) => Storage::lastModified($file))
             ->first();
+
+        if (!$latestFile) return null;
 
         $lastModified = Storage::lastModified($latestFile);
         $hoursSince = now()->diffInHours(Carbon::createFromTimestamp($lastModified));
 
-        return $hoursSince < self::CACHE_HOURS ? storage_path('app/' . $latestFile) : null;
+        return $hoursSince < self::CACHE_HOURS
+            ? Storage::path($latestFile)
+            : null;
     }
 
+    // Verifica que la respuesta corresponda realmente a un PDF.
     private function isPdfContent($response): bool
     {
-        $contentType = $response->header('Content-Type');
+        $contentType = strtolower($response->header('Content-Type', ''));
         $body = $response->body();
         return (str_contains($contentType, 'pdf') || str_contains($contentType, 'octet-stream'))
-            && preg_match('/%PDF-/', substr($body, 0, 8));
+        && preg_match('/%PDF-/', substr($body, 0, 8));
     }
 
+    // Genera un nombre de archivo seguro y único.
     private function generateFilename(string $url): string
     {
         // Extraer nombre del archivo original si es posible
@@ -180,7 +201,8 @@ class TurnosPdfDownloader
         return "{$safeName}_{$timestamp}.pdf";
     }
 
-    public function cleanOldPdfs(int $keepLast = 10): void
+    // Conserva los PDFs más recientes y elimina los restantes.
+    public function cleanOldPdfs(int $keepLast = 10): void 
     {
         $files = collect(Storage::files(self::STORAGE_PATH))
             ->sortByDesc(fn($file) => Storage::lastModified($file))
