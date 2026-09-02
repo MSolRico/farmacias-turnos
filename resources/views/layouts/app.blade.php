@@ -1,341 +1,176 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" x-data="tema">
 
 <head>
     <meta charset="UTF-8">
-    <title>Farmacias de Turno</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    
+
+    <title>@yield('title', 'Farmacias de Turno')</title>
+
     <link rel="icon" href="{{ asset('capsule.svg') }}" type="image/svg+xml">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    {{-- Fuente Inter --}}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    {{-- Leaflet --}}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    @stack('styles')
+
+    <script>
+        if (
+            localStorage.getItem('tema') === 'dark' ||
+            (!localStorage.getItem('tema') &&
+                window.matchMedia('(prefers-color-scheme: dark)').matches)
+        ) {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
 </head>
 
-<body class="d-flex flex-column h-100">
-    <main class="flex-shrink-0">
-        <nav class="tw-nav">
-            <div class="tw-nav-inner tw-whitespace-nowrap">
-                <a href="{{ route('dashboard') }}" class="tw-brand">
-                    <svg height="45" width="45" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#6cde58">
-                        <g>
-                            <path d="M21 8V16C21 18.7614 18.7614 21 16 21H8C5.23858 21 3 18.7614 3 16V8C3 5.23858 5.23858 3 8 3H16C18.7614 3 21 5.23858 21 8Z" stroke="#6cde58" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+<body class="bg-gray-50 dark:bg-slate-950 text-slate-700 dark:text-slate-200 antialiased flex flex-col min-h-screen">
 
-                            <path d="M13.9 18H10.1C9.76863 18 9.5 17.7314 9.5 17.4V15.1C9.5 14.7686 9.23137 14.5 8.9 14.5H6.6C6.26863 14.5 6 14.2314 6 13.9V10.1C6 9.76863 6.26863 9.5 6.6 9.5H8.9C9.23137 9.5 9.5 9.23137 9.5 8.9V6.6C9.5 6.26863 9.76863 6 10.1 6H13.9C14.2314 6 14.5 6.26863 14.5 6.6V8.9C14.5 9.23137 14.7686 9.5 15.1 9.5H17.4C17.7314 9.5 18 9.76863 18 10.1V13.9C18 14.2314 17.7314 14.5 17.4 14.5H15.1C14.7686 14.5 14.5 14.7686 14.5 15.1V17.4C14.5 17.7314 14.2314 18 13.9 18Z" stroke="#6cde58" stroke-width="1.5"></path>
-                        </g>
-                    </svg>
-                    <h1 class="tw-brand-title">Farmacias de Turno</h1>
-                </a>
+    {{-- =====================================================
+         NAVBAR
+    ====================================================== --}}
+    @include('layouts.navbar')
 
-                <div class="d-flex align-items-center tw-nav-actions tw-flex-nowrap">
 
-                    <form action="{{ route('buscar') }}" method="GET" class="tw-flex tw-items-center tw-space-x-2 tw-flex-nowrap">
-                        <input type="date" name="fecha" class="tw-h-10 tw-w-5 tw-px-2 tw-py-2 tw-bg-[#f2f5f8] tw-border-gray-300 tw-rounded-lg" style="padding-left: 6px; padding-right: 6px;" required>
-                        <select name="ciudad" id="select-ciudad" class="form-select tw-inline-block tw-w-auto tw-bg-[#f2f5f8] tw-border-gray-300" required>
-                            <option value="">Elegir ciudad</option>
-                            @foreach($ciudades as $ciudad)
-                            <option value="{{ $ciudad->id_ciudad }}" @if(isset($ciudad_santa_fe) && $ciudad->id_ciudad == $ciudad_santa_fe->id_ciudad) selected @endif>
-                                {{ $ciudad->nombre_ciudad }}
-                            </option>
-                            @endforeach
-                        </select>
-                        <button type="submit" class="tw-nav-button">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
-                                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
-                            </svg>
-                        </button>
-                        <button type="button" onclick="obtenerMiUbicacion()" class="tw-nav-button" title="Ordenar por mi Ubicación Actual">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-geo-alt-fill" viewBox="0 0 16 16">
-                                <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10m0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6"/>
-                            </svg>
-                        </button>
-                    </form>
+    {{-- =====================================================
+         MENSAJES DE SESIÓN
+    ====================================================== --}}
 
-                    <div x-data="{ open: false }" class="tw-relative">
-                        <button @click="open = !open" class="tw-avatar-btn">
-                            <svg class="tw-w-5 tw-h-5" viewBox="0 0 20 20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="#7c7f83">
-                                <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-                                <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
-                                <g id="SVGRepo_iconCarrier">
-                                    <title>profile_round [#1342]</title>
-                                    <desc>Created with Sketch.</desc>
-                                    <defs> </defs>
-                                    <g id="Page-1" stroke="none" stroke-width="1" fill="#7c7f83" fill-rule="evenodd">
-                                        <g id="Dribbble-Light-Preview" transform="translate(-140.000000, -2159.000000)" fill="#7c7f83">
-                                            <g id="icons" transform="translate(56.000000, 160.000000)">
-                                                <path d="M100.562548,2016.99998 L87.4381713,2016.99998 C86.7317804,2016.99998 86.2101535,2016.30298 86.4765813,2015.66198 C87.7127655,2012.69798 90.6169306,2010.99998 93.9998492,2010.99998 C97.3837885,2010.99998 100.287954,2012.69798 101.524138,2015.66198 C101.790566,2016.30298 101.268939,2016.99998 100.562548,2016.99998 M89.9166645,2004.99998 C89.9166645,2002.79398 91.7489936,2000.99998 93.9998492,2000.99998 C96.2517256,2000.99998 98.0830339,2002.79398 98.0830339,2004.99998 C98.0830339,2007.20598 96.2517256,2008.99998 93.9998492,2008.99998 C91.7489936,2008.99998 89.9166645,2007.20598 89.9166645,2004.99998 M103.955674,2016.63598 C103.213556,2013.27698 100.892265,2010.79798 97.837022,2009.67298 C99.4560048,2008.39598 100.400241,2006.33098 100.053171,2004.06998 C99.6509769,2001.44698 97.4235996,1999.34798 94.7348224,1999.04198 C91.0232075,1998.61898 87.8750721,2001.44898 87.8750721,2004.99998 C87.8750721,2006.88998 88.7692896,2008.57398 90.1636971,2009.67298 C87.1074334,2010.79798 84.7871636,2013.27698 84.044024,2016.63598 C83.7745338,2017.85698 84.7789973,2018.99998 86.0539717,2018.99998 L101.945727,2018.99998 C103.221722,2018.99998 104.226185,2017.85698 103.955674,2016.63598" id="profile_round-[#1342]"> </path>
-                                            </g>
-                                        </g>
-                                    </g>
-                                </g>
-                            </svg>
-                        </button>
-                        <ul x-show="open"
-                            x-cloak
-                            @click.away="open = false"
-                            x-transition:enter="transition ease-out duration-100"
-                            x-transition:enter-start="opacity-0 scale-95"
-                            x-transition:enter-end="opacity-100 scale-100"
-                            x-transition:leave="transition ease-in duration-75"
-                            x-transition:leave-start="opacity-100 scale-100"
-                            x-transition:leave-end="opacity-0 scale-95"
-                            class="tw-dropdown">
-                            @auth
-                            <li><a href="{{ route('profile.edit') }}" class="tw-dropdown-link">Perfil</a></li>
-                            <li>
-                                <form method="POST" action="{{ route('logout') }}">
-                                    @csrf
-                                    <button type="submit" class="tw-dropdown-link">Cerrar Sesión</button>
-                                </form>
-                            </li>
-                            @else
-                            @if (Route::has('login'))
-                            <li><a href="{{ route('login') }}" class="tw-dropdown-link">Iniciar Sesión</a></li>
-                            @endif
-                            @if (Route::has('register'))
-                            <li><a href="{{ route('register') }}" class="tw-dropdown-link">Registrarse</a></li>
-                            @endif
-                            @endauth
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </nav>
+    @if(session('success'))
+    <div class="max-w-7xl mx-auto px-6 pt-4 w-full">
 
-        @if(session('success'))
-        <div class="container mt-3">
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                {{ session('success') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
+        <div class="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 
+            dark:text-emerald-300 rounded-xl px-4 py-3 text-sm">
+            {{ session('success') }}
         </div>
-        @endif
 
-        @if(session('warning'))
-        <div class="container mt-3">
-            <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                {{ session('warning') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
+    </div>
+    @endif
+
+
+    @if(session('warning'))
+    <div class="max-w-7xl mx-auto px-6 pt-4 w-full">
+
+        <div class="bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 text-yellow-800 
+            dark:text-yellow-300 rounded-xl px-4 py-3 text-sm">
+            {{ session('warning') }}
         </div>
-        @endif
 
-        @if(session('error'))
-        <div class="container mt-3">
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                {{ session('error') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
+    </div>
+    @endif
+
+
+    @if(session('error'))
+    <div class="max-w-7xl mx-auto px-6 pt-4 w-full">
+
+        <div class="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300
+            rounded-xl px-4 py-3 text-sm">
+            {{ session('error') }}
         </div>
-        @endif
 
+    </div>
+    @endif
+
+
+    {{-- =====================================================
+         CONTENIDO
+    ====================================================== --}}
+
+    <main class="flex-1" x-data="{}">
         @yield('content')
-
-        <hr class="my-4">
-        <footer class="text-center my-4">
-            <div class="container">
-                <span class="text-muted">Farmacias de Turno © 2025</span>
-            </div>
-        </footer>
-
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
-
-        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-        <script>
-            // CORRECCIÓN: Se elimina la inyección PHP directa para evitar el error de variable no definida.
-            // La ciudad_actual_id ahora se obtiene dentro de la función al hacer clic en el botón.
-            
-            var map = L.map('mapa');
-
-            // Centrar el mapa en Santa Fe por defecto
-            var lat_sf = -31.649;
-            var lng_sf = -60.700;
-            map.setView([lat_sf, lng_sf], 13);
-
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
-
-            @yield('map_script')
-
-            // -----------------------------------------------------------------
-            // --- CÓDIGO DE GEOLOCALIZACIÓN Y DISTANCIA ---
-            // -----------------------------------------------------------------
-
-            let userMarker = null; // Marcador de la posición del usuario
-            let allFarmacyMarkers = []; // Array para guardar y limpiar los marcadores de farmacias
-            
-            // Icono de farmacia personalizado
-            const farmaciaIcon = L.icon({
-                iconUrl: 'data:image/svg+xml;charset=UTF-8,%3Csvg width="24" height="24" viewBox="0 0 24 24" fill="%236CDE58" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M12 21.7C17.3 17 20 13 20 10A8 8 0 0 0 12 2a8 8 0 0 0-8 8c0 3 2.7 7 8 11.7z"/%3E%3Cpath fill="%23FFFFFF" d="M11.5 6h1v5h-1zm-2 2h5v1h-5z"/%3E%3C/svg%3E',
-                iconSize: [30, 30],
-                iconAnchor: [15, 30],
-                popupAnchor: [0, -25],
-                className: 'farmacia-marker'
-            });
-
-            /**
-             * [Paso 1] Función para obtener la ubicación del navegador y lanzar la ordenación.
-             */
-            window.obtenerMiUbicacion = function() {
-                
-                // CORRECCIÓN: Obtener el ID de la ciudad del select, no de la inyección PHP.
-                const selectElement = document.getElementById('select-ciudad');
-                const ciudad_actual_id = selectElement ? parseInt(selectElement.value) : null;
-
-                if (!ciudad_actual_id || isNaN(ciudad_actual_id)) {
-                    alert("No se pudo determinar la ciudad para buscar turnos. Por favor, selecciona una ciudad en el filtro.");
-                    return;
-                }
-
-                if (navigator.geolocation) {
-                    const options = {
-                        enableHighAccuracy: true,
-                        timeout: 5000,
-                        maximumAge: 0
-                    };
-
-                    navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            const lat = position.coords.latitude;
-                            const lng = position.coords.longitude;
-                            const userPos = [lat, lng];
-
-                            // 1. Mostrar ubicación en el mapa
-                            mostrarUbicacionEnMapa(userPos);
-                            
-                            // 2. Enviar coordenadas al servidor
-                            enviarUbicacionAlServidor(lat, lng, ciudad_actual_id);
-                        },
-                        (error) => {
-                            console.error("Error al obtener la ubicación:", error);
-                            let message = "No se pudo obtener tu ubicación. ";
-                            if (error.code === error.PERMISSION_DENIED) {
-                                message += "El usuario denegó el permiso de geolocalización.";
-                            } else {
-                                message += "Asegúrate de tener GPS o que tu conexión sea segura (HTTPS).";
-                            }
-                            alert(message);
-                        },
-                        options
-                    );
-                } else {
-                    alert("Tu navegador no soporta la Geolocalización.");
-                }
-            }
-
-            /**
-             * Muestra el marcador del usuario y centra el mapa.
-             */
-            function mostrarUbicacionEnMapa(position) {
-                if (userMarker) {
-                    map.removeLayer(userMarker);
-                }
-                
-                // Icono de círculo azul (representa al usuario)
-                const userIcon = L.divIcon({
-                    className: 'custom-user-marker',
-                    html: '<div style="background-color: blue; width: 15px; height: 15px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.5);"></div>',
-                    iconSize: [21, 21],
-                    iconAnchor: [10.5, 10.5]
-                });
-
-                userMarker = L.marker(position, { icon: userIcon }).addTo(map)
-                    .bindPopup("¡Tu Posición Actual!").openPopup();
-
-                map.setView(position, 14); 
-            }
-
-            /**
-             * [Paso 2] Realiza la llamada AJAX a la API de Laravel para ordenar farmacias.
-             */
-            function enviarUbicacionAlServidor(lat, lng, cityId) {
-                const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
-                fetch('/api/farmacias/cercanas', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken 
-                    },
-                    body: JSON.stringify({ 
-                        latitud: lat, 
-                        longitud: lng,
-                        ciudad_id: cityId 
-                    })
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Error en la respuesta del servidor al solicitar farmacias.');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    // [Paso 3] Actualiza el mapa con los nuevos datos ordenados
-                    actualizarMapaYLista(data.farmacias);
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert("Hubo un error al obtener la lista de farmacias cercanas.");
-                });
-            }
-
-            /**
-             * [Paso 3] Limpia el mapa y lo repuebla con las farmacias ordenadas.
-             */
-            function actualizarMapaYLista(farmacias) {
-                // 1. LIMPIAR MAPA: Elimina todos los marcadores de farmacias anteriores
-                allFarmacyMarkers.forEach(marker => map.removeLayer(marker));
-                allFarmacyMarkers = [];
-                
-                // 2. AÑADIR NUEVOS MARCADORES Y MOSTRAR DISTANCIA
-                farmacias.forEach((farmacia, index) => {
-                    const distance = farmacia.distancia_km.toFixed(2);
-                    const farmacyPos = [farmacia.lat, farmacia.lng]; 
-
-                    // Crea el marcador de la farmacia
-                    const marker = L.marker(farmacyPos, { icon: farmaciaIcon }).addTo(map)
-                        .bindPopup(`
-                            <b>${index + 1}. ${farmacia.nombre}</b><br>
-                            ${farmacia.direccion}<br>
-                            Distancia: **${distance} km**
-                        `);
-                    
-                    allFarmacyMarkers.push(marker); 
-                });
-                
-                // Opcional: Centrar el mapa en la primera farmacia más cercana si hay resultados
-                if (farmacias.length > 0) {
-                    map.setView([farmacias[0].lat, farmacias[0].lng], 14);
-                }
-            }
-            // --- FIN CÓDIGO DE GEOLOCALIZACIÓN Y DISTANCIA ---
-        </script>
     </main>
 
+
+    {{-- =====================================================
+         FOOTER
+    ====================================================== --}}
+    @include('layouts.footer')
+
+    {{-- =====================================================
+         MODAL LOGIN
+    ====================================================== --}}
     <x-modal name="login" focusable maxWidth="md">
-        <div class="modal-header">
-            <h5 class="modal-title">Iniciar sesión requerida</h5>
+
+        {{-- Encabezado --}}
+        <div class="flex items-center justify-between border-b border-gray-200 dark:border-slate-700 px-6 py-4">
+
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                Inicio de sesión requerido
+            </h5>
+
             <button
                 type="button"
-                class="btn-close"
                 @click="$dispatch('close-modal', 'login')"
-                aria-label="Close">
+                class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 dark:text-slate-400
+                       transition hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-gray-600 dark:hover:text-slate-200"
+                aria-label="Cerrar">
+
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"
+                    aria-hidden="true">
+                    <path d="M4.293 4.293a1 1 0 0 1 1.414 0L10 8.586l4.293-4.293a1 1 0 1 1 1.414 1.414L11.414 10l4.293 4.293a1 1 0 0 1-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 0 1-1.414-1.414L8.586 10 4.293 5.707a1 1 0 0 1 0-1.414z" />
+                </svg>
+
             </button>
+
         </div>
-        <div class="modal-body text-center">
-            <p class="mb-4">
-                Para poder <strong>reportar una farmacia como cerrada</strong>, primero debés iniciar sesión con tu cuenta.
+
+        <div class="px-6 py-6 text-center">
+
+            <p class="mb-6 text-sm leading-relaxed text-gray-600 dark:text-slate-300">
+                Para poder
+                <strong class="font-semibold text-gray-900 dark:text-white">
+                    reportar una farmacia como cerrada</strong>,
+                primero debés iniciar sesión con tu cuenta.
             </p>
 
-            <a href="{{ route('login') }}"
-                class="btn btn-success px-4">
+            {{-- Botón --}}
+            <a
+                href="{{ route('login') }}"
+                class="inline-flex items-center justify-center rounded-lg bg-emerald-600 hover:bg-emerald-700
+                       text-white px-5 py-2.5 text-sm font-semibold no-underline shadow-sm transition
+                       focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2
+                       dark:focus:ring-offset-slate-900">
                 Ir al inicio de sesión
             </a>
+
         </div>
+
     </x-modal>
+
+    {{-- =====================================================
+         LEAFLET
+    ====================================================== --}}
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    @stack('scripts')
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('tema', () => ({
+                toggleTema() {
+                    const html = document.documentElement;
+                    html.classList.toggle('dark');
+                    localStorage.setItem(
+                        'tema',
+                        html.classList.contains('dark') ?
+                        'dark' :
+                        'light'
+                    );
+                }
+            }));
+        });
+    </script>
 
 </body>
 

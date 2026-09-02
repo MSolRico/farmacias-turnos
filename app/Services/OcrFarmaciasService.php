@@ -2,285 +2,341 @@
 
 namespace App\Services;
 
-use thiagoalessio\TesseractOCR\TesseractOCR;
-use Illuminate\Support\Facades\DB;
-use App\Models\Farmacia;
-use App\Models\Turno;
-use App\Models\Ciudad;
-use Carbon\Carbon;
-use App\Helpers\OcrCleaner;
+use App\Services\OcrFarmaciasValidator;
+use App\Services\TurnoDataPersister;
+use App\Services\GeminiVisionOcrService;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class OcrFarmaciasService
 {
-    // Año por defecto (ajustá si necesitás otro)
-    protected int $defaultYear = 2025;
+    protected OcrFarmaciasValidator $validator;
+    protected TurnoDataPersister $persister;
+    protected GeminiVisionOcrService $vision;
+    protected FarmaciaMatchingService $farmaciaMatching;
+    protected PdfToImageService $imgService;
 
-    public function procesar(string $ruta)
+    private array $farmaciasVistas = [];
+
+    private int $duplicadasOmitidas = 0;
+
+    public function __construct(
+        OcrFarmaciasValidator $validator,
+        TurnoDataPersister $persister,
+        GeminiVisionOcrService $vision,
+        FarmaciaMatchingService $farmaciaMatching,
+        PdfToImageService $imgService
+    ) {
+        $this->validator = $validator;
+        $this->persister = $persister;
+        $this->vision = $vision;
+        $this->farmaciaMatching = $farmaciaMatching;
+        $this->imgService = $imgService;
+    }
+
+    /**
+     * Punto de entrada: recibe la ruta al PDF del afiche, lo convierte a
+     * imágenes por columna y le pide a Gemini Vision que extraiga cada
+     * columna como JSON estructurado.
+     * El pipeline actual ya no utiliza Tesseract ni OcrCleaner.
+     */
+    public function procesar(string $ruta): array
     {
         if (!file_exists($ruta)) {
             return ['error' => "No existe el archivo: $ruta"];
         }
 
-        // 1) Ejecutar OCR (Tesseract)
-        try {
-            $ocr = (new TesseractOCR($ruta))
-                ->lang('spa')
-                ->psm(6);
+        $this->farmaciasVistas = [];
+        $this->duplicadasOmitidas = 0;
 
-            $textoBruto = $ocr->run();
-        } catch (\Throwable $e) {
-            return ['error' => "Error ejecutando Tesseract: " . $e->getMessage()];
+        $imagePaths = $this->imgService->convertToImage($ruta);
+
+        if (!$imagePaths || !is_array($imagePaths) || count($imagePaths) === 0) {
+            return ['error' => 'No se pudo convertir el PDF a imágenes con Poppler'];
         }
 
-        // 2) Limpiar preservando saltos de línea
-        $texto = OcrCleaner::normalizeRawText($textoBruto);
+        $items = [];
+        $columnasConError = 0;
 
-        // Guardar dump para depuración (opcional)
-        try {
-            @file_put_contents(storage_path('logs/ocr_last_raw.txt'), $textoBruto);
-            @file_put_contents(storage_path('logs/ocr_last_clean.txt'), $texto);
-        } catch (\Throwable $e) {
-            // no crítico
+        foreach ($imagePaths as $colPath) {
+            Log::info("[OCR] Procesando columna con Gemini Vision: {$colPath}");
+
+            $resultado = $this->vision->extraerDeImagen($colPath);
+
+            if (isset($resultado['error'])) {
+                Log::error("[OCR] Error extrayendo columna {$colPath}: {$resultado['error']}");
+                $columnasConError++;
+                continue;
+            }
+
+            $this->procesarResultadoColumna($resultado, $items);
         }
 
-        // 3) Separar en líneas y bloques
-        $lines = explode("\n", $texto);
+        if ($this->duplicadasOmitidas > 0) {
+            Log::info("[OCR] Se omitieron {$this->duplicadasOmitidas} entradas duplicadas (misma farmacia + mismo turno, detectadas después del match contra la BD).");
+        }
 
-        $currentCity = null;
-        $currentTurnDates = null; // array [inicio(DateTime), fin(DateTime)]
-        $items = []; // elementos detectados: nombre,direccion,telefono,ciudad,fechaPair
+        @file_put_contents(
+            storage_path('logs/ocr_last_items.json'),
+            json_encode($items, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+        );
 
-        foreach ($lines as $rawLine) {
-            $line = trim($rawLine);
-            if ($line === '') continue;
-            $upper = mb_strtoupper($line, 'UTF-8');
-
-            // DETECTAR CIUDAD (busca palabras claves)
-            if (preg_match('/\bSANTA\s*FE\b/u', $upper)) {
-                $currentCity = 'Santa Fe';
-                continue;
-            }
-            if (preg_match('/\bSANTO\s*TOM(É|E)?\b/iu', $upper)) {
-                $currentCity = 'Santo Tomé';
-                continue;
-            }
-
-            // DETECTAR BLOQUE FECHAS (ej: Desde 8 hs .. 03/11 - hasta 8 hs .. 04/11)
-            if (preg_match_all('/(\d{1,2}\/\d{1,2})/', $line, $m) && count($m[1]) >= 2) {
-                $d1 = OcrCleaner::fixDateString($m[1][0], $this->defaultYear);
-                $d2 = OcrCleaner::fixDateString($m[1][1], $this->defaultYear);
-                if ($d1 && $d2) {
-                    // convertir a Carbon (inicio 8:00 del primer día, fin 8:00 del segundo día)
-                    [$d1d,$d1m,$d1y] = $d1;
-                    [$d2d,$d2m,$d2y] = $d2;
-                    $inicio = Carbon::createFromDate($d1y, $d1m, $d1d)->setTime(8,0,0);
-                    $fin = Carbon::createFromDate($d2y, $d2m, $d2d)->setTime(8,0,0);
-                    $currentTurnDates = [$inicio, $fin];
-                    continue;
-                }
-            }
-
-            // DETECTAR LÍNEAS DE FARMACIA (heurística: teléfono o formato habitual)
-            // La expresión captura números en formato variados.
-            if (preg_match('/\d{2,4}[^\d]{0,2}\d{3,5}/', $line)) {
-
-                // extraer teléfono
-                $telefono = OcrCleaner::fixPhone($line);
-
-                // extraer dirección (heurísticas)
-                $direccion = $this->extractAddress($line);
-
-                // extraer nombre: parte antes de la dirección o antes del teléfono
-                $nombre = $this->extractName($line, $direccion, $telefono);
-
-                // limpiar/normalizar
-                $nombre = OcrCleaner::normalizeName($nombre);
-                $direccion = OcrCleaner::normalizeAddress($direccion);
-                $telefono = $telefono ? preg_replace('/\D+/', '', $telefono) : null;
-
-                // Reglas: si no hay ciudad, asignar Santa Fe por default
-                $ciudad = $currentCity ?? 'Santa Fe';
-
-                // Guardar item con copia de las fechas corrientes (si existen)
-                $items[] = [
-                    'id_tmp' => Str::random(8),
-                    'nombre' => $nombre,
-                    'direccion' => $direccion,
-                    'telefono' => $telefono,
-                    'ciudad' => $ciudad,
-                    'turn_dates' => $currentTurnDates // puede ser null
-                ];
-                continue;
-            }
-
-            // Otras líneas: posible continuación de la dirección (ej. línea previa tenía nombre + teléfono)
-            // Intento unir con último item si parece una dirección
-            if (!empty($items)) {
-                $last = &$items[count($items)-1];
-                if ($last['direccion'] === null && $this->looksLikeAddress($line)) {
-                    // concatenar
-                    $last['direccion'] = trim(($last['direccion'] ?? '') . ' ' . $line);
-                    $last['direccion'] = OcrCleaner::normalizeAddress($last['direccion']);
-                }
-            }
-        } // end foreach lines
-
-        // Si no detectó items -> reportar y devolver
         if (empty($items)) {
-            return ['farmacias' => 0, 'turnos' => 0];
+            Log::warning('No se detectaron farmacias válidas en el afiche');
+            return [
+                'farmacias_nuevas' => 0,
+                'farmacias_actualizadas' => 0,
+                'farmacias_rechazadas' => 0,
+                'turnos_nuevos' => 0,
+                'asignaciones_creadas' => 0,
+                'columnas_con_error' => $columnasConError,
+            ];
         }
 
-        // 4) Guardar en BD con validaciones y evitado de duplicados
-        $stats = ['farmacias' => 0, 'turnos' => 0];
-        DB::beginTransaction();
-        try {
-            foreach ($items as $it) {
-                // validar nombre minimo
-                if (empty($it['nombre'])) continue;
+        Log::info('Total de farmacias detectadas (después de deduplicar por identidad canónica): ' . count($items));
 
-                // si no hay fechas, saltar (podés cambiar la regla si querés aceptar sin fechas)
-                if (empty($it['turn_dates']) || !is_array($it['turn_dates'])) continue;
-                [$inicio, $fin] = $it['turn_dates'];
-                if (!$inicio || !$fin) continue;
-
-                // Crear o recuperar ciudad
-                $ciudad = Ciudad::firstOrCreate(['nombre_ciudad' => $it['ciudad']]);
-
-                // Buscar farmacia por nombre + ciudad (evitar duplicados)
-                $farmacia = Farmacia::where('nombre', $it['nombre'])
-                    ->where('id_ciudad', $ciudad->id_ciudad)
-                    ->first();
-
-                if (!$farmacia) {
-                    // si no existe, crear
-                    $farmacia = Farmacia::create([
-                        'nombre' => $it['nombre'],
-                        'direccion' => $it['direccion'],
-                        'telefono' => $it['telefono'],
-                        'id_ciudad' => $ciudad->id_ciudad
-                    ]);
-                    $stats['farmacias']++;
-                } else {
-                    // actualizar datos faltantes
-                    $changed = false;
-                    if (empty($farmacia->direccion) && !empty($it['direccion'])) {
-                        $farmacia->direccion = $it['direccion'];
-                        $changed = true;
-                    }
-                    if (empty($farmacia->telefono) && !empty($it['telefono'])) {
-                        $farmacia->telefono = $it['telefono'];
-                        $changed = true;
-                    }
-                    if ($changed) $farmacia->save();
-                }
-
-                // Geocoding solo si hace falta (respeta rate-limit)
-                if ((empty($farmacia->lat) || empty($farmacia->lng)) && !empty($farmacia->direccion)) {
-                    [$lat,$lng] = $this->obtenerCoordenadas($farmacia->direccion . ' ' . $ciudad->nombre_ciudad);
-                    if ($lat && $lng) {
-                        $farmacia->lat = $lat;
-                        $farmacia->lng = $lng;
-                        $farmacia->save();
-                        sleep(1);
-                    }
-                }
-
-                // Crear turno (si no existe)
-                $turno = Turno::firstOrCreate(
-                    [
-                        'fecha_hora_inicio' => $inicio->toDateTimeString(),
-                        'fecha_hora_fin' => $fin->toDateTimeString(),
-                        'id_ciudad' => $ciudad->id_ciudad
-                    ],
-                    [
-                        'nombre_turno' => 'Turno ' . $inicio->format('d/m')
-                    ]
-                );
-
-                $stats['turnos']++;
-
-                // Insertar pivot si no existe
-                $exists = DB::table('farmacias_turnos')
-                    ->where('id_farmacia', $farmacia->id_farmacia)
-                    ->where('id_turno', $turno->id_turno)
-                    ->exists();
-                if (!$exists) {
-                    DB::table('farmacias_turnos')->insert([
-                        'id_farmacia' => $farmacia->id_farmacia,
-                        'id_turno' => $turno->id_turno
-                    ]);
-                }
-            }
-
-            DB::commit();
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            return ['error' => $e->getMessage()];
-        }
+        $stats = $this->persister->guardarEnBD($items);
+        $stats['columnas_con_error'] = $columnasConError;
 
         return $stats;
     }
 
-    // -------------------------
-    // Helpers privados
-    // -------------------------
-
-    private function looksLikeAddress(string $line): bool
+    /**
+     * Toma el JSON que devolvió Gemini para UNA columna/imagen y lo
+     * convierte a los items planos que espera TurnoDataPersister::guardarEnBD().
+     */
+    private function procesarResultadoColumna(array $resultado, array &$items): void
     {
-        return (bool) preg_match('/\b(Av|Av\.|Bv|Calle|Diagonal|Dr|Gral|San|Marcial|Mariano|\d{1,3})\b/i', $line);
+        $ciudad = $resultado['ciudad'] ?? null;
+        $ciudad = $this->normalizarCiudad($ciudad);
+
+        foreach (($resultado['turnos'] ?? []) as $turno) {
+            $fechaInicioRaw = trim((string) ($turno['fecha_inicio'] ?? ''));
+            $fechaFinRaw = trim((string) ($turno['fecha_fin'] ?? ''));
+
+            if (!$fechaInicioRaw || !$fechaFinRaw) {
+                Log::warning('[OCR] Turno sin fechas válidas, se descarta: ' . json_encode($turno));
+                continue;
+            }
+
+            $fechas = $this->parsearRangoFechas($fechaInicioRaw, $fechaFinRaw);
+            if (!$fechas) {
+                Log::warning("[OCR] No se pudieron interpretar las fechas '{$fechaInicioRaw}' - '{$fechaFinRaw}'");
+                continue;
+            }
+
+            [$inicio, $fin] = $fechas;
+
+            // Se procesan los items del turno por separado para poder
+            // aplicar las excepciones antes de agregarlos al array general.
+            $itemsDelTurno = [];
+
+            foreach (($turno['farmacias'] ?? []) as $farmaciaRaw) {
+                $this->procesarFarmacia($farmaciaRaw, $ciudad, $inicio, $fin, $itemsDelTurno);
+            }
+
+            $this->aplicarExcepciones($turno['excepciones'] ?? [], $itemsDelTurno);
+
+            array_push($items, ...$itemsDelTurno);
+        }
     }
 
-    private function extractAddress(string $line): ?string
+    /**
+     * Ajusta las fechas de las farmacias mencionadas en notas de excepción
+     * (ej. "La farmacia Azanza estará de turno solo el 01/09 al 02/09"):
+     * La excepción acota el rango de fechas de esa farmacia puntual sin
+     * afectar al resto de las farmacias del turno.
+     */
+    private function aplicarExcepciones(array $excepciones, array &$itemsDelTurno): void
     {
-        // buscar patrones comunes de direccion (con número)
-        if (preg_match('/((Av\.?|Avenida|Bv\.?|Boulevard|Calle|Diagonal|San|Dr\.?|Gral\.?|Marcial|Mariano|Padre|9 de Julio|25 de Mayo|Blas Parera)[^\d\n]*\d{1,5})/iu', $line, $m)) {
-            return trim($m[1]);
-        }
+        foreach ($excepciones as $excepcion) {
+            $nombreExcepcion = trim((string) ($excepcion['nombre_farmacia'] ?? ''));
+            $fechaInicioRaw = trim((string) ($excepcion['fecha_inicio'] ?? ''));
+            $fechaFinRaw = trim((string) ($excepcion['fecha_fin'] ?? ''));
 
-        // fallback: buscar primer fragmento con número
-        if (preg_match('/([A-Za-zÁÉÍÓÚÑáéíóúñ\s\.]+)\s+(\d{1,5})/u', $line, $m)) {
-            return trim($m[0]);
-        }
+            if ($nombreExcepcion === '' || $fechaInicioRaw === '' || $fechaFinRaw === '') {
+                Log::warning('[OCR] Excepción incompleta, se ignora: ' . json_encode($excepcion));
+                continue;
+            }
 
-        return null;
+            $fechas = $this->parsearRangoFechas($fechaInicioRaw, $fechaFinRaw);
+            if (!$fechas) {
+                Log::warning("[OCR] Excepción con fechas inválidas para '{$nombreExcepcion}': {$fechaInicioRaw}-{$fechaFinRaw}");
+                continue;
+            }
+            [$inicioExcepcion, $finExcepcion] = $fechas;
+
+            $matched = false;
+            foreach ($itemsDelTurno as &$item) {
+                if ($this->nombresCoinciden($nombreExcepcion, $item['nombre'])) {
+                    Log::info("[OCR] Excepción aplicada: '{$item['nombre']}' pasa a turno {$inicioExcepcion->format('d/m')}-{$finExcepcion->format('d/m')} (nota: {$nombreExcepcion})");
+                    $item['turn_dates'] = [$inicioExcepcion, $finExcepcion];
+                    $item['notas'] = trim(($item['notas'] ?? '') . ' ' . ($excepcion['texto_original'] ?? ''));
+                    $matched = true;
+                }
+            }
+            unset($item);
+
+            if (!$matched) {
+                Log::warning("[OCR] La excepción menciona a '{$nombreExcepcion}' pero no coincide con ninguna farmacia ya extraída en este turno");
+            }
+        }
     }
 
-    private function extractName(string $line, ?string $direccion, ?string $telefono): string
+    /**
+     * Compara nombres tolerando diferencias de mayúsculas, tildes,
+     * espacios y pequeños errores de reconocimiento.
+     */
+    private function nombresCoinciden(string $a, string $b): bool
     {
-        $tmp = $line;
+        $normalizar = function (string $s): string {
+            $s = mb_strtolower(trim($s), 'UTF-8');
+            $s = str_replace(['á', 'é', 'í', 'ó', 'ú', 'ñ'], ['a', 'e', 'i', 'o', 'u', 'n'], $s);
+            return preg_replace('/[^a-z0-9]/', '', $s);
+        };
 
-        // quitar teléfono si está al final
-        if ($telefono) {
-            $tmp = preg_replace('/' . preg_quote($telefono, '/') . '$/', '', $tmp);
-            // también quitar espacios y caracteres sobrantes
-            $tmp = preg_replace('/[@\-\:\|]+$/', '', trim($tmp));
+        $a = $normalizar($a);
+        $b = $normalizar($b);
+
+        if ($a === '' || $b === '') {
+            return false;
         }
 
-        // quitar dirección si aparece dentro
-        if ($direccion) {
-            $tmp = str_ireplace($direccion, '', $tmp);
+        if ($a === $b || str_contains($a, $b) || str_contains($b, $a)) {
+            return true;
         }
 
-        // limpiar números residuales
-        $tmp = preg_replace('/\d{2,}/', '', $tmp);
+        $maxLen = max(strlen($a), strlen($b));
+        $similitud = $maxLen > 0 ? (1 - levenshtein($a, $b) / $maxLen) * 100 : 0;
 
-        // quitar símbolos extraños
-        $tmp = preg_replace('/[@\.\-]{2,}/', ' ', $tmp);
-
-        return trim($tmp);
+        return $similitud >= 80;
     }
 
-    private function obtenerCoordenadas(string $direccion): array
+    private function claveVista(string $nombre, Carbon $inicio, Carbon $fin): string
     {
-        $url = "https://nominatim.openstreetmap.org/search?format=json&q=" . urlencode($direccion) . "&limit=1";
-        $opts = ["http" => ["header" => "User-Agent: farmacias-turnos-app/1.0\r\n"]];
-        $context = stream_context_create($opts);
-        $json = @file_get_contents($url, false, $context);
-        if (!$json) return [null, null];
-        $data = json_decode($json, true);
-        if (empty($data)) return [null, null];
-        return [$data[0]['lat'] ?? null, $data[0]['lon'] ?? null];
+        $n = mb_strtolower(trim($nombre), 'UTF-8');
+        $n = str_replace(['á', 'é', 'í', 'ó', 'ú', 'ñ'], ['a', 'e', 'i', 'o', 'u', 'n'], $n);
+        $n = preg_replace('/[^a-z0-9]/', '', $n);
+
+        return $n . '|' . $inicio->format('Y-m-d') . '|' . $fin->format('Y-m-d');
+    }
+
+    private function procesarFarmacia(array $farmaciaRaw, string $ciudad, Carbon $inicio, Carbon $fin, array &$items): void
+    {
+        $nombre = trim((string) ($farmaciaRaw['nombre'] ?? ''));
+        $direccion = trim((string) ($farmaciaRaw['direccion'] ?? ''));
+        $telefono = trim((string) ($farmaciaRaw['telefono'] ?? ''));
+
+        if ($nombre === '') {
+            return;
+        }
+
+        // Gemini ya devuelve el teléfono como un campo separado.
+        // Se mantiene la validación como medida de seguridad.
+        $telefonoValidado = $telefono !== '' ? $this->validator->validarTelefono($telefono) : null;
+
+        if (!$telefonoValidado && strlen($direccion) <= 5) {
+            Log::info(
+                "[Validación] Farmacia descartada - sin teléfono ni dirección válidos: {$nombre}"
+            );
+            return;
+        }
+
+        // Gemini Vision: confianza base alta al trabajar directamente
+        // sobre la imagen estructurada.
+        $confianza = 90;
+
+        $match = $this->farmaciaMatching->buscarCoincidencia($nombre, $ciudad, $direccion, $telefonoValidado ?? '');
+
+        if ($match && $match['confianza'] >= 80) {
+            Log::info("✅ MATCH EN BD: '{$nombre}' → '{$match['nombre_correcto']}' (confianza: {$match['confianza']}%)");
+            $nombre = $match['nombre_correcto'];
+
+            if (!$direccion && !empty($match['direccion_correcta'])) {
+                $direccion = $match['direccion_correcta'];
+            }
+            if (!$telefonoValidado && !empty($match['telefono_correcto'])) {
+                $telefonoValidado = $match['telefono_correcto'];
+            }
+        }
+
+        $claveVista = $this->claveVista($nombre, $inicio, $fin);
+        if (isset($this->farmaciasVistas[$claveVista])) {
+            $this->duplicadasOmitidas++;
+            Log::debug("[OCR] Duplicado omitido: '{$nombre}' ya estaba agregado para el turno {$inicio->format('d/m')}-{$fin->format('d/m')}");
+            return;
+        }
+        $this->farmaciasVistas[$claveVista] = true;
+
+        $items[] = [
+            'id_tmp' => Str::random(8),
+            'nombre' => $nombre,
+            'direccion' => $direccion !== '' ? $direccion : null,
+            'telefono' => $telefonoValidado,
+            'ciudad' => $ciudad,
+            'notas' => null,
+            'turn_dates' => [$inicio, $fin],
+            'confianza' => $confianza,
+        ];
+
+        Log::info("✅ Farmacia VALIDADA: {$nombre} | {$direccion} | {$telefonoValidado}");
+    }
+
+    private function normalizarCiudad(?string $ciudad): string
+    {
+        if (!$ciudad) {
+            return 'Santa Fe';
+        }
+
+        $upper = mb_strtoupper($ciudad, 'UTF-8');
+
+        return str_contains($upper, 'SANTO TOM') ? 'Santo Tomé' : 'Santa Fe';
+    }
+
+    /**
+     * Convierte 'DD/MM', 'DD/MM' a un par de Carbon, infiriendo el año con
+     * la misma lógica que antes (si el fin es anterior al inicio, es año
+     * que viene).
+     */
+    private function parsearRangoFechas(string $inicioRaw, string $finRaw): ?array
+    {
+        if (!preg_match('#^(\d{1,2})/(\d{1,2})$#', $inicioRaw, $m1)) {
+            return null;
+        }
+        if (!preg_match('#^(\d{1,2})/(\d{1,2})$#', $finRaw, $m2)) {
+            return null;
+        }
+
+        [$d1, $m1v] = [(int) $m1[1], (int) $m1[2]];
+        [$d2, $m2v] = [(int) $m2[1], (int) $m2[2]];
+
+        $year = $this->validator->inferYear($d1, $m1v, $d2, $m2v);
+
+        try {
+            return [
+                Carbon::create($year, $m1v, $d1, 8, 0, 0),
+                Carbon::create($year, $m2v, $d2, 8, 0, 0),
+            ];
+        } catch (\Throwable $e) {
+            Log::warning("[OCR] Fecha inválida: {$inicioRaw} - {$finRaw}: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Método legacy mantenido únicamente por compatibilidad.
+     * El flujo actual utiliza procesar($rutaPdf) y Gemini Vision.
+     */
+    public function procesarTexto(string $textoBruto, ?string $ciudadDefault = 'Santa Fe'): array
+    {
+        Log::warning('[OCR] procesarTexto() es un método legacy. ' .
+            'El pipeline actual utiliza Gemini Vision directamente ' .
+            'sobre la imagen.');
+
+        return [
+            'error' => 'procesarTexto ya no es el flujo soportado. ' .
+                'Usá procesar($rutaPdf).'
+        ];
     }
 }
-

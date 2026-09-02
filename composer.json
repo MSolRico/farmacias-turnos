@@ -7,11 +7,16 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "google-gemini-php/client": "2.0",
+        "google-gemini-php/laravel": "^2.0",
+        "guzzlehttp/guzzle": "^7.10",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
         "laravel/ui": "*",
+        "smalot/pdfparser": "^2.12",
         "spatie/pdf-to-image": "^1.2",
-        "spatie/pdf-to-text": "^1.54",
+        "symfony/css-selector": "^7.4",
+        "symfony/dom-crawler": "^8.0",
         "thiagoalessio/tesseract_ocr": "^2.13"
     },
     "require-dev": {
