@@ -4,7 +4,7 @@
 
 @section('content')
 
-<div class="space-y-6">
+<div class="space-y-6 py-8">
 
     <div>
         <h1 class="text-2xl font-bold text-slate-900 dark:text-white">

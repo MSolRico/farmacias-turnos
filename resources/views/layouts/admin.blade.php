@@ -1,213 +1,277 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" x-data="tema">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>@yield('title', 'Administración') - Farmacias de Turno</title>
+    <title>@yield('title', 'Administración') · Farmacias de Turno</title>
 
     <link rel="icon" href="{{ asset('capsule.svg') }}">
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     @stack('styles')
+
+    <script>
+        if (
+            localStorage.getItem('tema') === 'dark' ||
+            (!localStorage.getItem('tema') &&
+                window.matchMedia('(prefers-color-scheme: dark)').matches)
+        ) {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
 </head>
 
-<body class="bg-gray-50 text-slate-700 dark:bg-slate-950 dark:text-slate-200">
+<body class="bg-gray-50 text-slate-700 dark:bg-slate-950 dark:text-slate-200 antialiased">
 
-    <div class="min-h-screen flex">
+    {{-- =========================================================
+         HEADER
+         ========================================================= --}}
+    <header class="bg-[#fdfdfd] dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700 sticky top-0 z-50">
 
-        {{-- =====================================================
-             BARRA LATERAL
-        ====================================================== --}}
-        <aside class="hidden lg:flex lg:flex-col w-64 bg-emerald-950 text-white shrink-0">
+        <div class="max-w-7xl mx-auto px-6 h-15 flex items-center justify-between gap-6">
 
-            {{-- Logo --}}
-            <div class="h-20 flex items-center px-6 border-b border-emerald-900">
+            {{-- =====================================================
+                 MARCA
+             ===================================================== --}}
+            <div class="flex items-center">
 
                 <a href="{{ route('admin.dashboard') }}"
-                   class="flex items-center gap-3">
+                    class="flex items-center gap-3 no-underline">
 
-                    <img
-                        src="{{ asset('capsule.svg') }}"
-                        alt="Farmacias de Turno"
-                        class="w-8 h-8">
-
-                    <div>
-                        <p class="font-bold leading-tight">
-                            Farmacias
-                        </p>
-
-                        <p class="text-xs text-emerald-300">
-                            Administración
-                        </p>
+                    <div class="w-9 h-9 rounded-xl flex items-center justify-center text-white text-lg font-bold">
+                        <x-application-logo />
                     </div>
+
+                    <h1 class="text-lg font-bold leading-tight text-slate-900 dark:text-white m-0">
+                        Panel
+                        <br>
+                        <span class="font-medium text-emerald-700 dark:text-emerald-400">
+                            de control
+                        </span>
+                    </h1>
 
                 </a>
 
             </div>
 
 
-            {{-- Navegación --}}
-            <nav class="flex-1 px-4 py-6 space-y-1">
+            {{-- =====================================================
+             NAVEGACIÓN
+             ===================================================== --}}
+            <nav class="hidden md:flex items-center gap-6 lg:gap-8 text-sm font-medium">
 
                 <a href="{{ route('admin.dashboard') }}"
-                   class="flex items-center gap-3 px-4 py-3 rounded-xl
-                          bg-emerald-900/70 text-white">
-
-                    <span class="text-lg">⌂</span>
-
-                    <span class="text-sm font-medium">
-                        Inicio
-                    </span>
-
+                    class="{{ request()->routeIs('admin.dashboard')
+                    ? 'text-emerald-700 dark:text-emerald-400 font-semibold border-b-2 border-emerald-600 dark:border-emerald-400'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400'
+                }} py-5 transition no-underline">
+                    Inicio
                 </a>
 
-
-                <a href="#"
-                   class="flex items-center gap-3 px-4 py-3 rounded-xl
-                          text-emerald-100 hover:bg-emerald-900/60
-                          transition">
-
-                    <span class="text-lg">⌖</span>
-
-                    <span class="text-sm font-medium">
-                        Farmacias
-                    </span>
-
+                <a href="{{ route('admin.farmacias.index') }}"
+                    class="{{ request()->routeIs('admin.farmacias.*')
+                    ? 'text-emerald-700 dark:text-emerald-400 font-semibold border-b-2 border-emerald-600 dark:border-emerald-400'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400'
+                }} py-5 transition no-underline">
+                    Farmacias
                 </a>
 
-
-                <a href="#"
-                   class="flex items-center gap-3 px-4 py-3 rounded-xl
-                          text-emerald-100 hover:bg-emerald-900/60
-                          transition">
-
-                    <span class="text-lg">▣</span>
-
-                    <span class="text-sm font-medium">
-                        Turnos
-                    </span>
-
+                <a href="{{ route('admin.turnos.index') }}"
+                    class="{{ request()->routeIs('admin.turnos.*')
+                    ? 'text-emerald-700 dark:text-emerald-400 font-semibold border-b-2 border-emerald-600 dark:border-emerald-400'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400'
+                }} py-5 transition no-underline">
+                    Turnos
                 </a>
 
-
-                <a href="#"
-                   class="flex items-center gap-3 px-4 py-3 rounded-xl
-                          text-emerald-100 hover:bg-emerald-900/60
-                          transition">
-
-                    <span class="text-lg">↻</span>
-
-                    <span class="text-sm font-medium">
-                        Importaciones
-                    </span>
-
+                <a href="{{ route('admin.importaciones.index') }}"
+                    class="{{ request()->routeIs('admin.importaciones.*')
+                    ? 'text-emerald-700 dark:text-emerald-400 font-semibold border-b-2 border-emerald-600 dark:border-emerald-400'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400'
+                }} py-5 transition no-underline">
+                    Importaciones
                 </a>
 
-
-                <a href="#"
-                   class="flex items-center gap-3 px-4 py-3 rounded-xl
-                          text-emerald-100 hover:bg-emerald-900/60
-                          transition">
-
-                    <span class="text-lg">⚑</span>
-
-                    <span class="text-sm font-medium">
-                        Reportes
-                    </span>
-
+                <a href="{{ route('admin.reportes.index') }}"
+                    class="{{ request()->routeIs('admin.reportes.*')
+                    ? 'text-emerald-700 dark:text-emerald-400 font-semibold border-b-2 border-emerald-600 dark:border-emerald-400'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400'
+                }} py-5 transition no-underline">
+                    Reportes
                 </a>
 
             </nav>
 
 
-            {{-- Usuario --}}
-            <div class="p-4 border-t border-emerald-900">
+            {{-- =====================================================
+             ACCIONES
+             ===================================================== --}}
+            <div class="flex items-center gap-3">
 
-                <div class="px-4 py-3 mb-2">
+                {{-- TEMA --}}
+                <button
+                    type="button"
+                    @click="toggleTema()"
+                    class="w-8 h-8 rounded-full bg-gray-100 dark:bg-slate-800
+                       flex items-center justify-center
+                       text-slate-600 dark:text-slate-300
+                       hover:bg-gray-200 dark:hover:bg-slate-700
+                       transition"
+                    aria-label="Cambiar tema">
 
-                    <p class="text-sm font-semibold truncate">
-                        {{ auth()->user()->name }}
-                    </p>
+                    <svg
+                        class="w-4 h-4 dark:hidden"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg">
 
-                    <p class="text-xs text-emerald-300">
-                        Administrador
-                    </p>
+                        <path
+                            d="M12 22C17.5228 22 22 17.5228 22 12C22 11.5373 21.3065 11.4608 21.0672 11.8568C19.9289 13.7406 17.8615 15 15.5 15C11.9101 15 9 12.0899 9 8.5C9 6.13845 10.2594 4.07105 12.1432 2.93276C12.5392 2.69347 12.4627 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"
+                            fill="currentColor">
+                        </path>
 
-                </div>
+                    </svg>
 
-                <a href="{{ route('dashboard') }}"
-                   class="flex items-center gap-3 px-4 py-3 rounded-xl
-                          text-emerald-100 hover:bg-emerald-900/60
-                          transition">
+                    <svg
+                        class="hidden dark:block w-4 h-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2">
 
-                    <span>←</span>
+                        <circle cx="12" cy="12" r="4"></circle>
+                        <path d="M12 2v2"></path>
+                        <path d="M12 20v2"></path>
+                        <path d="m4.93 4.93 1.41 1.41"></path>
+                        <path d="m17.66 17.66 1.41 1.41"></path>
+                        <path d="M2 12h2"></path>
+                        <path d="M20 12h2"></path>
+                        <path d="m6.34 17.66-1.41 1.41"></path>
+                        <path d="m19.07 4.93-1.41 1.41"></path>
 
-                    <span class="text-sm">
-                        Volver al sitio
-                    </span>
+                    </svg>
 
-                </a>
-
-            </div>
-
-        </aside>
+                </button>
 
 
-        {{-- =====================================================
-             CONTENIDO
-        ====================================================== --}}
-        <div class="flex-1 min-w-0 flex flex-col">
+                {{-- USUARIO --}}
+                <div
+                    x-data="{ open: false }"
+                    class="relative">
 
-            {{-- Header --}}
-            <header class="h-20 bg-white dark:bg-slate-900
-                           border-b border-slate-200 dark:border-slate-800
-                           flex items-center justify-between px-6">
+                    <button
+                        type="button"
+                        @click="open = !open"
+                        class="w-9 h-9 rounded-full bg-gray-100 dark:bg-slate-800
+                           flex items-center justify-center
+                           text-slate-600 dark:text-slate-300
+                           hover:bg-gray-200 dark:hover:bg-slate-700
+                           transition"
+                        aria-label="Menú de usuario">
 
-                <div class="lg:hidden">
+                        <x-icons.user />
 
-                    <a href="{{ route('admin.dashboard') }}"
-                       class="font-bold text-emerald-800 dark:text-emerald-400">
-                        Farmacias de Turno
-                    </a>
+                    </button>
 
-                </div>
 
-                <div class="hidden lg:block">
-                    @yield('header')
-                </div>
+                    {{-- DROPDOWN --}}
+                    <div
+                        x-show="open"
+                        x-cloak
+                        @click.away="open = false"
+                        x-transition
+                        class="absolute right-0 mt-2 w-52
+                           bg-white dark:bg-slate-800
+                           border border-gray-200 dark:border-slate-700
+                           rounded-xl shadow-lg overflow-hidden z-50">
 
-                <div class="flex items-center gap-3">
+                        <div class="px-4 py-3 border-b border-gray-100 dark:border-slate-700">
 
-                    <span class="hidden sm:block text-sm text-slate-500 dark:text-slate-400">
-                        {{ auth()->user()->name }}
-                    </span>
+                            <p class="text-sm font-semibold text-slate-800 dark:text-white">
+                                {{ auth()->user()->name }}
+                            </p>
 
-                    <div class="w-9 h-9 rounded-full bg-emerald-100
-                                dark:bg-emerald-900/50
-                                flex items-center justify-center
-                                text-emerald-700 dark:text-emerald-400
-                                font-semibold">
+                            <p class="text-xs text-emerald-600 dark:text-emerald-400">
+                                Administrador
+                            </p>
 
-                        {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                        </div>
+
+
+                        <a
+                            href="{{ route('profile.edit') }}"
+                            class="flex items-center gap-2 px-4 py-3 text-sm
+                               text-slate-700 dark:text-slate-200
+                               hover:bg-gray-50 dark:hover:bg-slate-700
+                               no-underline">
+
+                            <x-icons.user />
+
+                            Perfil
+
+                        </a>
+
+                        <form
+                            method="POST"
+                            action="{{ route('logout') }}">
+
+                            @csrf
+
+                            <button
+                                type="submit"
+                                class="w-full flex items-center gap-2 px-4 py-3 text-sm
+                                   text-slate-700 dark:text-slate-200
+                                   hover:bg-gray-50 dark:hover:bg-slate-700">
+
+                                <x-icons.login />
+
+                                Cerrar sesión
+
+                            </button>
+
+                        </form>
 
                     </div>
 
                 </div>
 
-            </header>
-
-
-            {{-- Contenido de cada página --}}
-            <main class="flex-1">
-                @yield('content')
-            </main>
+            </div>
 
         </div>
 
-    </div>
+    </header>
+
+
+    {{-- =========================================================
+         CONTENIDO
+         ========================================================= --}}
+    <main class="max-w-7xl mx-auto px-6">
+
+        @yield('content')
+
+    </main>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('tema', () => ({
+                toggleTema() {
+                    const html = document.documentElement;
+
+                    html.classList.toggle('dark');
+
+                    localStorage.setItem(
+                        'tema',
+                        html.classList.contains('dark') ?
+                        'dark' :
+                        'light'
+                    );
+                }
+            }));
+        });
+    </script>
 
     @stack('scripts')
 

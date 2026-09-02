@@ -26,6 +26,70 @@
     </div>
 
 
+    {{-- Filtro por fecha --}}
+    <form
+        method="GET"
+        action="{{ route('admin.turnos.index') }}"
+        class="mb-6 flex flex-col sm:flex-row sm:items-end gap-3">
+
+        <div class="w-full sm:w-auto">
+
+            <label
+                for="fecha"
+                class="block text-xs font-medium text-slate-600
+                       dark:text-slate-300 mb-1.5">
+                Buscar por fecha
+            </label>
+
+            <input
+                type="date"
+                id="fecha"
+                name="fecha"
+                value="{{ $fecha }}"
+                class="w-full sm:w-52 rounded-xl
+                       border border-slate-200 dark:border-slate-700
+                       bg-white dark:bg-slate-900
+                       text-slate-700 dark:text-slate-200
+                       px-3 py-2.5 text-sm
+                       focus:border-emerald-500 focus:ring-emerald-500">
+
+        </div>
+
+        <div class="flex items-center gap-2">
+
+            <button
+                type="submit"
+                class="inline-flex items-center justify-center
+                       px-4 py-2.5 rounded-xl
+                       bg-emerald-600 hover:bg-emerald-700
+                       text-white text-sm font-semibold
+                       transition">
+                Buscar
+            </button>
+
+            @if($fecha)
+
+            <a
+                href="{{ route('admin.turnos.index') }}"
+                class="inline-flex items-center justify-center
+                           px-4 py-2.5 rounded-xl
+                           bg-slate-100 hover:bg-slate-200
+                           text-slate-600
+                           dark:bg-slate-800
+                           dark:hover:bg-slate-700
+                           dark:text-slate-300
+                           text-sm font-semibold
+                           no-underline transition">
+                Limpiar
+            </a>
+
+            @endif
+
+        </div>
+
+    </form>
+
+
     {{-- Tabla --}}
     <div class="bg-white dark:bg-slate-900 border border-slate-200
                 dark:border-slate-800 rounded-2xl overflow-hidden">

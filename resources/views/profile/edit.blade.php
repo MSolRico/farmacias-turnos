@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends(auth()->user()->esAdmin() ? 'layouts.admin' : 'layouts.app')
 
 @section('title', 'Perfil')
 

@@ -63,6 +63,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::put('/farmacias/{farmacia}', [FarmaciaController::class, 'update'])->name('farmacias.update');
     Route::get('/turnos', [AdminTurnoController::class, 'index'])->name('turnos.index');
     Route::get('/turnos/{turno}', [AdminTurnoController::class, 'show'])->name('turnos.show');
+    Route::put('/turnos/{turno}/farmacias', [AdminTurnoController::class, 'updateFarmacias'])->name('turnos.farmacias.update');
     Route::get('/importaciones', [ImportacionController::class, 'index'])->name('importaciones.index');
     Route::get('/importaciones/{importacion}', [ImportacionController::class, 'show'])->name('importaciones.show');
     Route::get('/reportes', [AdminReporteController::class, 'index'])->name('reportes.index');
