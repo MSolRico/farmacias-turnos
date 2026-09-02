@@ -1,10 +1,6 @@
 # ✚ Farmacias de Turno
 
-<img
-    width="1000"
-    alt="Hero de Farmacias de Turno"
-    src="https://raw.githubusercontent.com/MSolRico/farmacias-turnos/main/public/images/portada.png"
->
+<img width="1000" alt="Hero de Farmacias de Turno" src="https://raw.githubusercontent.com/MSolRico/farmacias-turnos/farmacias-turnos/public/images/portada.png">
 
 Aplicación web para consultar de forma rápida y precisa las farmacias de turno, visualizar su ubicación y reportar situaciones en las que una farmacia de turno se encuentre cerrada.
 
@@ -60,19 +56,11 @@ El sistema automatiza la incorporación de los turnos publicados oficialmente:
 
 ### 👤 Panel de usuario
 
-<img
-width="1000"
-alt="Panel de usuario"
-src="https://raw.githubusercontent.com/MSolRico/farmacias-turnos/main/public/images/panel-usuario.png"
->
+<img width="1000" alt="Panel de usuario" src="https://raw.githubusercontent.com/MSolRico/farmacias-turnos/farmacias-turnos/public/images/panel-usuario.png">
 
 ### 🛠️ Panel de administración
 
-<img
-width="1000"
-alt="Panel de administración"
-src="https://raw.githubusercontent.com/MSolRico/farmacias-turnos/main/public/images/panel-administracion.png"
->
+<img width="1000" alt="Panel de administración" src="https://raw.githubusercontent.com/MSolRico/farmacias-turnos/farmacias-turnos/public/images/panel-administracion.png">
 
 ## 🧰 Tecnologías
 
