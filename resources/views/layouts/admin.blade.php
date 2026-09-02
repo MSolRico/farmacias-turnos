@@ -29,7 +29,7 @@
     {{-- =========================================================
          HEADER
          ========================================================= --}}
-    <header class="bg-[#fdfdfd] dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700 sticky top-0 z-50">
+    <header x-data="{ menuAbierto: false }" class="bg-[#fdfdfd] dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700 sticky top-0 z-50">
 
         <div class="max-w-7xl mx-auto px-6 h-15 flex items-center justify-between gap-6">
 
@@ -110,6 +110,46 @@
              ACCIONES
              ===================================================== --}}
             <div class="flex items-center gap-3">
+
+                <button
+                    type="button"
+                    @click="menuAbierto = !menuAbierto"
+                    class="md:hidden w-9 h-9 rounded-full
+           bg-gray-100 dark:bg-slate-800
+           flex items-center justify-center
+           text-slate-600 dark:text-slate-300
+           hover:bg-gray-200 dark:hover:bg-slate-700
+           transition"
+                    aria-label="Abrir menú">
+
+                    <svg
+                        x-show="!menuAbierto"
+                        class="w-5 h-5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2">
+
+                        <path d="M4 6h16"></path>
+                        <path d="M4 12h16"></path>
+                        <path d="M4 18h16"></path>
+
+                    </svg>
+
+                    <svg
+                        x-show="menuAbierto"
+                        class="w-5 h-5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2">
+
+                        <path d="M6 6l12 12"></path>
+                        <path d="M18 6l-12 12"></path>
+
+                    </svg>
+
+                </button>
 
                 {{-- TEMA --}}
                 <button
@@ -239,6 +279,69 @@
                 </div>
 
             </div>
+
+        </div>
+
+        <div
+            x-show="menuAbierto"
+            x-cloak
+            x-transition
+            class="md:hidden border-t border-gray-200 dark:border-slate-700
+           bg-[#fdfdfd] dark:bg-slate-900">
+
+            <nav class="max-w-7xl mx-auto px-6 py-3 space-y-1">
+
+                <a
+                    href="{{ route('admin.dashboard') }}"
+                    @click="menuAbierto = false"
+                    class="block px-4 py-3 rounded-xl text-sm font-medium no-underline
+                   {{ request()->routeIs('admin.dashboard')
+                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800' }}">
+                    Inicio
+                </a>
+
+                <a
+                    href="{{ route('admin.farmacias.index') }}"
+                    @click="menuAbierto = false"
+                    class="block px-4 py-3 rounded-xl text-sm font-medium no-underline
+                   {{ request()->routeIs('admin.farmacias.*')
+                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800' }}">
+                    Farmacias
+                </a>
+
+                <a
+                    href="{{ route('admin.turnos.index') }}"
+                    @click="menuAbierto = false"
+                    class="block px-4 py-3 rounded-xl text-sm font-medium no-underline
+                   {{ request()->routeIs('admin.turnos.*')
+                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800' }}">
+                    Turnos
+                </a>
+
+                <a
+                    href="{{ route('admin.importaciones.index') }}"
+                    @click="menuAbierto = false"
+                    class="block px-4 py-3 rounded-xl text-sm font-medium no-underline
+                   {{ request()->routeIs('admin.importaciones.*')
+                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800' }}">
+                    Importaciones
+                </a>
+
+                <a
+                    href="{{ route('admin.reportes.index') }}"
+                    @click="menuAbierto = false"
+                    class="block px-4 py-3 rounded-xl text-sm font-medium no-underline
+                   {{ request()->routeIs('admin.reportes.*')
+                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800' }}">
+                    Reportes
+                </a>
+
+            </nav>
 
         </div>
 
