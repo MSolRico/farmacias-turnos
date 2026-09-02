@@ -104,6 +104,34 @@
 
             </select>
 
+            <select
+                name="coordenadas"
+                class="rounded-xl border border-slate-300
+           dark:border-slate-700
+           bg-white dark:bg-slate-900
+           text-slate-900 dark:text-white
+           px-4 py-2.5
+           focus:outline-none
+           focus:ring-2 focus:ring-emerald-500">
+
+                <option value="">
+                    Todas las coordenadas
+                </option>
+
+                <option
+                    value="completas"
+                    @selected($coordenadas==='completas' )>
+                    Coordenadas completas
+                </option>
+
+                <option
+                    value="incompletas"
+                    @selected($coordenadas==='incompletas' )>
+                    Coordenadas incompletas
+                </option>
+
+            </select>
+
             <button
                 type="submit"
                 class="inline-flex items-center justify-center
@@ -116,7 +144,7 @@
 
             </button>
 
-            @if($busqueda)
+            @if($busqueda || $ciudadId || $coordenadas)
 
             <a
                 href="{{ route('admin.farmacias.index') }}"

@@ -12,6 +12,7 @@ class FarmaciaController extends Controller
     {
         $busqueda = $request->input('buscar');
         $ciudadId = $request->input('ciudad');
+        $coordenadas = $request->input('coordenadas');
 
         $farmacias = Farmacia::with('ciudad')
             ->when($busqueda, function ($query, $busqueda) {
@@ -23,6 +24,19 @@ class FarmaciaController extends Controller
             ->when($ciudadId, function ($query, $ciudadId) {
                 $query->where('id_ciudad', $ciudadId);
             })
+            ->when($coordenadas, function ($query, $coordenadas) {
+                if ($coordenadas === 'completas') {
+                    $query->whereNotNull('lat')
+                        ->whereNotNull('lng');
+                }
+
+                if ($coordenadas === 'incompletas') {
+                    $query->where(function ($query) {
+                        $query->whereNull('lat')
+                            ->orWhereNull('lng');
+                    });
+                }
+            })
             ->orderBy('nombre')
             ->get();
 
@@ -32,7 +46,8 @@ class FarmaciaController extends Controller
             'farmacias',
             'busqueda',
             'ciudades',
-            'ciudadId'
+            'ciudadId',
+            'coordenadas'
         ));
     }
 
