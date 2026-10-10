@@ -10,6 +10,10 @@ El sistema incluye un panel de administración para gestionar farmacias, turnos,
 
 https://github.com/MSolRico/farmacias-turnos
 
+**🔗 Link a la documentación completa:**
+
+https://deepwiki.com/MSolRico/farmacias-turnos
+
 ## 🚀 Funcionalidades
 
 ### 👤 Usuarios
